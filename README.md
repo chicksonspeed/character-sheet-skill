@@ -1,22 +1,32 @@
 # Character Sheet Generator
 
-Web app that builds a ready-to-use zip package for any image model.
+Web app for building professional character reference sheets. Download a zip you can drop into any image model.
 
-Fill in character details, upload reference photos, and download a zip containing:
-- `prompt.txt` — the full strict Will-style layout prompt
-- `photos/` — your reference images
-- `INSTRUCTIONS.txt` — how to use it
+**Live:** https://chicksonspeed.github.io/character-sheet-skill/
 
-## Live App
+## Features
 
-**https://chicksonspeed.github.io/character-sheet-skill/**
+- Structured height/weight + role dropdown
+- Clickable tags for Body Type, Skin, Hair, Eyes & Face, Style, and Vibe
+- Live preview that updates as you type
+- Color palette extraction from uploaded photos
+- Photo upload with guidance
+- Reference strength (strict / balanced / loose)
+- Multiple formats (Classic Black, Clean White, Story 9:16)
+- Variation pack (1–3 prompts)
+- Batch mode (multiple characters in one zip)
+- Turnaround-only prompt option
+- Blank text areas option (for clean overlays)
+- Save / Load profiles (localStorage)
+- One-click “Copy for Grok”
+- Stronger consistency directives in every prompt
 
 ## Usage
 
-1. Open the app
-2. Fill in the form and upload 1–4 photos
+1. Fill the form and upload 1–4 photos
+2. Adjust format, strength, and variations
 3. Click **Download Zip**
-4. Drop the contents into Grok, Flux, Midjourney, or any generator that accepts reference images
+4. Drop the contents into Grok, Flux, Midjourney, etc.
 
 ## Repo
 

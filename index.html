@@ -25,24 +25,30 @@
     line-height: 1.5;
   }
   .wrap {
-    max-width: 820px;
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 40px 20px 80px;
+    padding: 32px 20px 80px;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 28px;
   }
-  h1 { font-size: 2.4rem; margin: 0 0 8px; letter-spacing: -0.03em; }
-  .subtitle { color: var(--muted); margin-bottom: 32px; }
+  @media (max-width: 900px) {
+    .wrap { grid-template-columns: 1fr; }
+  }
+  h1 { font-size: 2.2rem; margin: 0 0 6px; letter-spacing: -0.03em; }
+  .subtitle { color: var(--muted); margin: 0 0 24px; }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
   }
   label {
     display: block;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    margin: 14px 0 6px;
+    margin: 12px 0 5px;
     color: var(--yellow);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -53,310 +59,346 @@
     border: 1px solid var(--border);
     color: var(--text);
     border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 1rem;
+    padding: 10px 12px;
+    font-size: 0.95rem;
     font-family: inherit;
   }
-  textarea { min-height: 70px; resize: vertical; }
-  input:focus, textarea:focus, select:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-  .row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
+  textarea { min-height: 60px; resize: vertical; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
-  .hw-row {
-    display: grid;
-    grid-template-columns: 1fr 90px;
-    gap: 8px;
-  }
-  .tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 8px 0 4px;
-  }
+  .hw-row { display: grid; grid-template-columns: 1fr 80px; gap: 6px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
   .tag {
     background: #0e0c10;
     border: 1px solid var(--border);
     color: var(--text);
     border-radius: 999px;
-    padding: 6px 12px;
-    font-size: 0.85rem;
+    padding: 5px 10px;
+    font-size: 0.8rem;
     cursor: pointer;
     user-select: none;
   }
-  .tag:hover, .tag.active {
-    border-color: var(--accent);
-    background: rgba(227, 93, 140, 0.12);
-  }
-  .photos {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 8px;
-  }
+  .tag:hover, .tag.active { border-color: var(--accent); background: rgba(227, 93, 140, 0.12); }
+  .sublabel { font-size: 0.72rem; color: var(--muted); margin: 8px 0 2px; }
+  .photos { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
   .photo-slot {
-    width: 100px;
-    height: 100px;
+    width: 88px;
+    height: 88px;
     border: 2px dashed var(--border);
-    border-radius: 12px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     overflow: hidden;
     background: #0e0c10;
+    position: relative;
   }
   .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
-  .photo-slot span { font-size: 0.75rem; color: var(--muted); text-align: center; padding: 8px; }
+  .photo-slot span { font-size: 0.7rem; color: var(--muted); text-align: center; padding: 6px; }
+  .badge {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    font-size: 0.65rem;
+    text-align: center;
+    border-radius: 4px;
+    padding: 2px 0;
+  }
   button {
     background: var(--accent);
     color: white;
     border: none;
-    border-radius: 12px;
-    padding: 14px 24px;
-    font-size: 1rem;
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     width: 100%;
     margin-top: 8px;
   }
   button:hover { filter: brightness(1.1); }
+  button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
-  .note { font-size: 0.85rem; color: var(--muted); margin-top: 6px; }
-  .success { color: var(--accent2); font-weight: 600; margin-top: 12px; }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row button { flex: 1; }
+  .note { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+  .success { color: var(--accent2); font-weight: 600; margin-top: 10px; font-size: 0.9rem; }
+  .preview {
+    background: #111;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 0.75rem;
+    min-height: 420px;
+  }
+  .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .swatches { display: flex; gap: 4px; }
+  .swatch { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #333; }
+  .preview-name { font-size: 1.4rem; font-weight: 700; }
+  .preview-sub { color: var(--yellow); font-size: 0.7rem; }
+  .preview-section { margin: 8px 0; }
+  .preview-section strong { color: var(--yellow); }
+  .palette-row { display: flex; gap: 6px; margin-top: 4px; }
+  .palette-swatch { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #333; }
+  .char-block { border: 1px dashed var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+  .remove-char { float: right; background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Character Sheet</h1>
-  <p class="subtitle">Fill in the details and upload reference photos. Download a zip you can drop into any image model.</p>
+  <div>
+    <h1>Character Sheet</h1>
+    <p class="subtitle">Fill details, upload photos, download a ready-to-use zip. Live preview on the right.</p>
 
-  <div class="card">
-    <div class="row">
-      <div>
-        <label>Name</label>
-        <input id="name" placeholder="Will" />
-      </div>
-      <div>
-        <label>Role / Stats</label>
-        <select id="role">
-          <option value="">Select…</option>
-          <option>Versatile</option>
-          <option>Top</option>
-          <option>Bottom</option>
-          <option>Switch</option>
-          <option>Vers Top</option>
-          <option>Vers Bottom</option>
-        </select>
-      </div>
+    <div id="characters"></div>
+
+    <div class="card">
+      <button class="secondary" id="addChar">+ Add another character (batch)</button>
     </div>
 
-    <div class="row">
-      <div>
-        <label>Height</label>
-        <div class="hw-row">
-          <input id="heightValue" type="number" min="140" max="220" placeholder="182" />
-          <select id="heightUnit">
-            <option value="cm">cm</option>
-            <option value="ft">ft/in</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label>Weight</label>
-        <div class="hw-row">
-          <input id="weightValue" type="number" min="40" max="200" placeholder="73" />
-          <select id="weightUnit">
-            <option value="kg">kg</option>
-            <option value="lbs">lbs</option>
-          </select>
-        </div>
-      </div>
+    <div class="card">
+      <label>Format</label>
+      <select id="format">
+        <option value="classic">Classic Black</option>
+        <option value="white">Clean White</option>
+        <option value="story">Story (9:16)</option>
+      </select>
+      <label>Reference Strength</label>
+      <select id="strength">
+        <option value="strict">Strict likeness</option>
+        <option value="balanced" selected>Balanced</option>
+        <option value="loose">Loose / stylized</option>
+      </select>
+      <label>Variations</label>
+      <select id="variations">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
+      <label style="margin-top:14px;">
+        <input type="checkbox" id="blankText" style="width:auto; margin-right:8px;"> Blank text areas (for clean overlay later)
+      </label>
+      <label>
+        <input type="checkbox" id="turnaroundOnly" style="width:auto; margin-right:8px;"> Also include turnaround-only prompt
+      </label>
     </div>
 
-    <label>Appearance</label>
-    <div style="font-size:0.75rem;color:#9b97a6;margin:6px 0 2px;">Body Type</div>
-    <div class="tags" id="bodyTags"></div>
-    <div style="font-size:0.75rem;color:#9b97a6;margin:10px 0 2px;">Skin</div>
-    <div class="tags" id="skinTags"></div>
-    <div style="font-size:0.75rem;color:#9b97a6;margin:10px 0 2px;">Hair</div>
-    <div class="tags" id="hairTags"></div>
-    <div style="font-size:0.75rem;color:#9b97a6;margin:10px 0 2px;">Eyes & Face</div>
-    <div class="tags" id="faceTags"></div>
-    <textarea id="appearance" placeholder="Click tags above or type your own…"></textarea>
-
-    <label>Personal Style</label>
-    <div class="tags" id="styleTags"></div>
-    <textarea id="style" placeholder="Click tags above or type your own…"></textarea>
-
-    <label>Vibe</label>
-    <div class="tags" id="vibeTags"></div>
-    <textarea id="vibe" placeholder="Click tags above or type your own…"></textarea>
-
-    <label>Extra Notes</label>
-    <textarea id="notes" placeholder="Anything else for the NOTES section…"></textarea>
+    <div class="btn-row">
+      <button id="generate">Download Zip</button>
+      <button class="secondary" id="openGrok">Copy for Grok</button>
+    </div>
+    <div class="btn-row">
+      <button class="secondary" id="save">Save Profile</button>
+      <button class="secondary" id="load">Load Last</button>
+    </div>
+    <div id="status" class="success"></div>
   </div>
 
-  <div class="card">
-    <label>Reference Photos</label>
-    <p class="note">Upload 1–4 clear photos (face close-up + body shots work best).</p>
-    <div class="photos" id="photoGrid">
-      <div class="photo-slot" data-index="0"><span>Photo 1</span></div>
-      <div class="photo-slot" data-index="1"><span>Photo 2</span></div>
-      <div class="photo-slot" data-index="2"><span>Photo 3</span></div>
-      <div class="photo-slot" data-index="3"><span>Photo 4</span></div>
+  <div>
+    <div class="card">
+      <div class="preview-header">
+        <strong>Live Preview</strong>
+        <div class="swatches" id="previewSwatches"></div>
+      </div>
+      <div class="preview" id="preview">
+        <div class="preview-name" id="pName">NAME</div>
+        <div class="preview-sub">CHARACTER SHEET</div>
+        <div class="preview-section"><strong>STATS</strong><br><span id="pStats">—</span></div>
+        <div class="preview-section"><strong>APPEARANCE</strong><br><span id="pApp">—</span></div>
+        <div class="preview-section"><strong>STYLE</strong><br><span id="pStyle">—</span></div>
+        <div class="preview-section"><strong>VIBE</strong><br><span id="pVibe">—</span></div>
+        <div class="preview-section"><strong>PALETTE</strong>
+          <div class="palette-row" id="pPalette"></div>
+        </div>
+      </div>
     </div>
-    <input type="file" id="fileInput" accept="image/*" multiple hidden />
   </div>
-
-  <button id="generate">Download Zip</button>
-  <div id="status" class="success"></div>
 </div>
 
 <script>
 const TAGS = {
-  body: [
-    "athletic", "lean muscular", "muscular", "slim", "stocky", "toned", "broad shoulders",
-    "narrow waist", "defined abs", "thick thighs", "long legs", "compact", "tall frame",
-    "short frame", "v-taper", "soft", "cut", "bulk", "swimmer build", "runner build"
-  ],
-  skin: [
-    "medium tan", "fair skin", "olive skin", "dark skin", "light skin", "sun-kissed",
-    "pale", "freckles", "warm undertone", "cool undertone", "neutral undertone",
-    "golden", "porcelain", "deep", "medium", "light medium"
-  ],
-  hair: [
-    "short hair", "textured hair", "messy hair", "styled hair", "undercut", "buzzed",
-    "long hair", "curly hair", "wavy hair", "straight hair", "slicked back",
-    "pink hair", "blond hair", "dark hair", "brown hair", "black hair", "dyed hair",
-    "bleached hair", "silver hair", "red hair", "blue hair", "platinum", "ash blond",
-    "crew cut", "fade", "man bun", "middle part", "side part"
-  ],
-  face: [
-    "brown eyes", "blue eyes", "green eyes", "hazel eyes", "dark eyes", "light eyes",
-    "grey eyes", "amber eyes", "beard", "full beard", "stubble", "clean shaven",
-    "mustache", "goatee", "trimmed beard", "strong jawline", "soft features",
-    "sharp features", "high cheekbones", "full lips", "defined brows", "thick brows",
-    "confident presence", "relaxed presence", "intense gaze", "friendly face",
-    "smirk", "serious expression", "boyish face", "mature face"
-  ],
-  style: [
-    "edgy", "confident", "stylish", "casual", "refined", "laid-back", "streetwear", "minimal", "summer casual", "clean lines",
-    "accessories", "layered", "monochrome", "bold colors", "neutral tones", "oversized", "fitted", "athleisure",
-    "smart casual", "nightlife", "daytime casual", "workwear", "preppy", "grunge", "techwear",
-    "chain necklace", "sunglasses", "hoodie", "leather jacket", "denim", "tank top", "button-up", "t-shirt",
-    "jewelry", "rings", "earring", "bracelet", "cap", "beanie", "boots", "sneakers", "loafers",
-    "silver jewelry", "gold jewelry", "cross necklace", "choker", "watch", "bag", "backpack"
-  ],
-  vibe: [
-    "cool", "versatile", "approachable", "mysterious", "playful", "intense", "chill", "confident", "flirty", "aloof",
-    "warm", "magnetic", "charismatic", "calm", "energetic", "laid-back", "bold", "subtle", "teasing", "serious",
-    "friendly", "distant", "inviting", "guarded", "night owl", "party energy", "low-key", "high-energy",
-    "smooth", "rough around the edges", "sweet", "dominant", "submissive energy", "bratty", "soft",
-    "stoic", "expressive", "shy", "outgoing", "dry humor", "chaotic", "grounded", "dreamy"
-  ]
+  body: ["athletic","lean muscular","muscular","slim","stocky","toned","broad shoulders","narrow waist","defined abs","thick thighs","long legs","compact","tall frame","short frame","v-taper","soft","cut","bulk","swimmer build","runner build"],
+  skin: ["medium tan","fair skin","olive skin","dark skin","light skin","sun-kissed","pale","freckles","warm undertone","cool undertone","neutral undertone","golden","porcelain","deep","medium","light medium"],
+  hair: ["short hair","textured hair","messy hair","styled hair","undercut","buzzed","long hair","curly hair","wavy hair","straight hair","slicked back","pink hair","blond hair","dark hair","brown hair","black hair","dyed hair","bleached hair","silver hair","red hair","blue hair","platinum","ash blond","crew cut","fade","man bun","middle part","side part"],
+  face: ["brown eyes","blue eyes","green eyes","hazel eyes","dark eyes","light eyes","grey eyes","amber eyes","beard","full beard","stubble","clean shaven","mustache","goatee","trimmed beard","strong jawline","soft features","sharp features","high cheekbones","full lips","defined brows","thick brows","confident presence","relaxed presence","intense gaze","friendly face","smirk","serious expression","boyish face","mature face"],
+  style: ["edgy","confident","stylish","casual","refined","laid-back","streetwear","minimal","summer casual","clean lines","accessories","layered","monochrome","bold colors","neutral tones","oversized","fitted","athleisure","smart casual","nightlife","daytime casual","workwear","preppy","grunge","techwear","chain necklace","sunglasses","hoodie","leather jacket","denim","tank top","button-up","t-shirt","jewelry","rings","earring","bracelet","cap","beanie","boots","sneakers","loafers","silver jewelry","gold jewelry","cross necklace","choker","watch","bag","backpack"],
+  vibe: ["cool","versatile","approachable","mysterious","playful","intense","chill","confident","flirty","aloof","warm","magnetic","charismatic","calm","energetic","laid-back","bold","subtle","teasing","serious","friendly","distant","inviting","guarded","night owl","party energy","low-key","high-energy","smooth","rough around the edges","sweet","dominant","submissive energy","bratty","soft","stoic","expressive","shy","outgoing","dry humor","chaotic","grounded","dreamy"]
 };
 
-function setupTags(containerId, textareaId, words) {
-  const container = document.getElementById(containerId);
-  const textarea = document.getElementById(textareaId);
-  words.forEach(word => {
-    const el = document.createElement('span');
-    el.className = 'tag';
-    el.textContent = word;
-    el.addEventListener('click', () => {
-      const current = textarea.value.trim();
-      const parts = current ? current.split(/,\s*/).filter(Boolean) : [];
-      if (parts.includes(word)) {
-        textarea.value = parts.filter(p => p !== word).join(', ');
-        el.classList.remove('active');
-      } else {
-        parts.push(word);
-        textarea.value = parts.join(', ');
-        el.classList.add('active');
-      }
+let characters = [];
+let charId = 0;
+
+function createCharBlock(data = {}) {
+  const id = charId++;
+  const div = document.createElement('div');
+  div.className = 'char-block card';
+  div.dataset.id = id;
+  div.innerHTML = `
+    <button class="remove-char" data-id="${id}">✕ Remove</button>
+    <div class="row">
+      <div><label>Name</label><input class="c-name" value="${data.name||''}" placeholder="Will"></div>
+      <div><label>Role</label>
+        <select class="c-role">
+          <option value="">Select…</option>
+          <option ${data.role==='Versatile'?'selected':''}>Versatile</option>
+          <option ${data.role==='Top'?'selected':''}>Top</option>
+          <option ${data.role==='Bottom'?'selected':''}>Bottom</option>
+          <option ${data.role==='Switch'?'selected':''}>Switch</option>
+          <option ${data.role==='Vers Top'?'selected':''}>Vers Top</option>
+          <option ${data.role==='Vers Bottom'?'selected':''}>Vers Bottom</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>Height</label><div class="hw-row"><input class="c-height" type="number" min="140" max="220" value="${data.height||''}" placeholder="182"><select class="c-hunit"><option value="cm">cm</option><option value="ft">ft/in</option></select></div></div>
+      <div><label>Weight</label><div class="hw-row"><input class="c-weight" type="number" min="40" max="200" value="${data.weight||''}" placeholder="73"><select class="c-wunit"><option value="kg">kg</option><option value="lbs">lbs</option></select></div></div>
+    </div>
+    <label>Appearance</label>
+    <div class="sublabel">Body Type</div><div class="tags" data-group="body"></div>
+    <div class="sublabel">Skin</div><div class="tags" data-group="skin"></div>
+    <div class="sublabel">Hair</div><div class="tags" data-group="hair"></div>
+    <div class="sublabel">Eyes & Face</div><div class="tags" data-group="face"></div>
+    <textarea class="c-appearance" placeholder="Click tags or type…">${data.appearance||''}</textarea>
+    <label>Personal Style</label>
+    <div class="tags" data-group="style"></div>
+    <textarea class="c-style" placeholder="Click tags or type…">${data.style||''}</textarea>
+    <label>Vibe</label>
+    <div class="tags" data-group="vibe"></div>
+    <textarea class="c-vibe" placeholder="Click tags or type…">${data.vibe||''}</textarea>
+    <label>Extra Notes</label>
+    <textarea class="c-notes" placeholder="Notes…">${data.notes||''}</textarea>
+    <label>Reference Photos</label>
+    <p class="note">1–4 clear photos. Face close-up recommended.</p>
+    <div class="photos"></div>
+    <input type="file" class="file-input" accept="image/*" hidden>
+  `;
+  document.getElementById('characters').appendChild(div);
+  setupTags(div);
+  setupPhotos(div);
+  div.querySelector('.remove-char').onclick = () => { div.remove(); updatePreview(); };
+  div.querySelectorAll('input,textarea,select').forEach(el => el.addEventListener('input', updatePreview));
+  characters.push({ id, el: div, photos: [null,null,null,null], files: [null,null,null,null], colors: [] });
+  updatePreview();
+  return div;
+}
+
+function setupTags(block) {
+  block.querySelectorAll('.tags').forEach(container => {
+    const group = container.dataset.group;
+    const textarea = block.querySelector(group === 'style' ? '.c-style' : group === 'vibe' ? '.c-vibe' : '.c-appearance');
+    TAGS[group].forEach(word => {
+      const el = document.createElement('span');
+      el.className = 'tag';
+      el.textContent = word;
+      el.onclick = () => {
+        const parts = textarea.value.split(/,\s*/).filter(Boolean);
+        if (parts.includes(word)) {
+          textarea.value = parts.filter(p => p !== word).join(', ');
+          el.classList.remove('active');
+        } else {
+          parts.push(word);
+          textarea.value = parts.join(', ');
+          el.classList.add('active');
+        }
+        updatePreview();
+      };
+      container.appendChild(el);
     });
-    container.appendChild(el);
   });
 }
 
-setupTags('bodyTags', 'appearance', TAGS.body);
-setupTags('skinTags', 'appearance', TAGS.skin);
-setupTags('hairTags', 'appearance', TAGS.hair);
-setupTags('faceTags', 'appearance', TAGS.face);
-setupTags('styleTags', 'style', TAGS.style);
-setupTags('vibeTags', 'vibe', TAGS.vibe);
-
-const photos = [null, null, null, null];
-const photoFiles = [null, null, null, null];
-const fileInput = document.getElementById('fileInput');
-const photoGrid = document.getElementById('photoGrid');
-
-photoGrid.addEventListener('click', (e) => {
-  const slot = e.target.closest('.photo-slot');
-  if (!slot) return;
-  fileInput.dataset.index = slot.dataset.index;
-  fileInput.click();
-});
-
-fileInput.addEventListener('change', () => {
-  const idx = parseInt(fileInput.dataset.index || '0', 10);
-  const file = fileInput.files[0];
-  if (!file) return;
-  photoFiles[idx] = file;
-  const reader = new FileReader();
-  reader.onload = () => {
-    photos[idx] = reader.result;
-    const slot = photoGrid.querySelector(`[data-index="${idx}"]`);
-    slot.innerHTML = `<img src="${reader.result}" alt="ref ${idx+1}">`;
+function setupPhotos(block) {
+  const grid = block.querySelector('.photos');
+  const input = block.querySelector('.file-input');
+  const char = characters.find(c => c.el === block);
+  for (let i = 0; i < 4; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'photo-slot';
+    slot.innerHTML = `<span>Photo ${i+1}</span>`;
+    slot.onclick = () => { input.dataset.idx = i; input.click(); };
+    grid.appendChild(slot);
+  }
+  input.onchange = () => {
+    const idx = parseInt(input.dataset.idx || 0);
+    const file = input.files[0];
+    if (!file) return;
+    char.files[idx] = file;
+    const reader = new FileReader();
+    reader.onload = () => {
+      char.photos[idx] = reader.result;
+      const slot = grid.children[idx];
+      slot.innerHTML = `<img src="${reader.result}"><div class="badge">${file.name.length > 12 ? 'Photo' : 'OK'}</div>`;
+      extractColors(reader.result, char);
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
   };
-  reader.readAsDataURL(file);
-  fileInput.value = '';
-});
-
-function getHeight() {
-  const v = document.getElementById('heightValue').value.trim();
-  const unit = document.getElementById('heightUnit').value;
-  if (!v) return '—';
-  if (unit === 'cm') return `${v} cm`;
-  // rough ft/in conversion display
-  const totalIn = Math.round(parseFloat(v) / 2.54);
-  const ft = Math.floor(totalIn / 12);
-  const inches = totalIn % 12;
-  return `${v} cm (${ft}'${inches}")`;
 }
 
-function getWeight() {
-  const v = document.getElementById('weightValue').value.trim();
-  const unit = document.getElementById('weightUnit').value;
-  if (!v) return '—';
-  if (unit === 'kg') return `${v} kg`;
-  const kg = Math.round(parseFloat(v) / 2.2046);
-  return `${v} lbs (${kg} kg)`;
+function extractColors(dataUrl, char) {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = 40; c.height = 40;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, 40, 40);
+    const data = ctx.getImageData(0,0,40,40).data;
+    const counts = {};
+    for (let i = 0; i < data.length; i += 16) {
+      const r = data[i], g = data[i+1], b = data[i+2];
+      const key = `#${((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)}`;
+      counts[key] = (counts[key]||0)+1;
+    }
+    char.colors = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0]);
+    updatePreview();
+  };
+  img.src = dataUrl;
 }
 
-function val(id) {
-  return document.getElementById(id).value.trim() || '—';
+function getCharData(block) {
+  const h = block.querySelector('.c-height').value;
+  const hu = block.querySelector('.c-hunit').value;
+  const w = block.querySelector('.c-weight').value;
+  const wu = block.querySelector('.c-wunit').value;
+  let height = '—', weight = '—';
+  if (h) height = hu === 'cm' ? `${h} cm` : `${h} cm`;
+  if (w) weight = wu === 'kg' ? `${w} kg` : `${w} lbs`;
+  return {
+    name: block.querySelector('.c-name').value.trim() || 'CHARACTER',
+    role: block.querySelector('.c-role').value || '—',
+    height, weight,
+    appearance: block.querySelector('.c-appearance').value.trim() || '—',
+    style: block.querySelector('.c-style').value.trim() || '—',
+    vibe: block.querySelector('.c-vibe').value.trim() || '—',
+    notes: block.querySelector('.c-notes').value.trim() || '—'
+  };
 }
 
-document.getElementById('generate').addEventListener('click', async () => {
-  const btn = document.getElementById('generate');
-  const status = document.getElementById('status');
-  btn.disabled = true;
-  status.textContent = 'Building zip...';
+function buildPrompt(data, format, strength, blank) {
+  const strengthText = {
+    strict: 'Match the reference photos as closely as possible. Prioritize exact likeness.',
+    balanced: 'Use the reference photos for identity but allow natural lighting and styling.',
+    loose: 'Use the photos mainly for vibe and general look. Stylized interpretation is fine.'
+  }[strength];
 
-  const nameRaw = val('name');
-  const name = nameRaw.replace(/[^a-z0-9]/gi, '_') || 'character';
+  const consistency = `
+Consistency rules:
+- Exact same person in every image. Do not change face, age, or body.
+- Lock facial features, hair, beard, and skin tone from the reference photos.
+- Turnaround views must match each other perfectly.
+- No morphing between angles.
+${strengthText}`;
 
-  const prompt = `STRICT CHARACTER REFERENCE SHEET LAYOUT. Black background. Do not deviate from this structure.
+  let layout = '';
+  if (format === 'classic') {
+    layout = `STRICT CHARACTER REFERENCE SHEET LAYOUT. Black background. Do not deviate from this structure.
 
 LEFT SIDEBAR (narrow vertical panel, black background):
-- Very large bold white text: "${nameRaw || 'CHARACTER'}"
+- Very large bold white text: "${data.name}"
 - Small yellow text underneath: "CHARACTER SHEET"
 - Status block: "ONLINE" + time + distance
 - Section titled "STATS" with three lines (role, height, weight) with small icons
@@ -366,75 +408,153 @@ LEFT SIDEBAR (narrow vertical panel, black background):
 - Section titled "COLOR PALETTE" with exactly four color squares labeled Hair / Eyes / Skin / Beard
 - Section titled "STYLE PALETTE" with exactly four color squares
 
-TOP RIGHT (three photos in a row, labeled 01, 02, 03 in the top-left corner of each photo):
+TOP RIGHT (three photos in a row, labeled 01, 02, 03):
 - Photo 01, Photo 02, Photo 03 using the uploaded reference images
 
 BOTTOM CENTER (white background turnaround):
 - Four full-body views side by side labeled exactly: FRONT | LEFT PROFILE | RIGHT PROFILE | BACK
-- Same person across all four angles, shirtless, black pants, consistent face and body from the uploaded references
+- Same person across all four angles, shirtless, black pants
 
 FAR RIGHT PANEL:
-- Section titled "DETAILS" with three stacked close-up crops (hair, eyes, lower face)
-- Section titled "NOTES" with a short paragraph
-
-Use the uploaded photos as the primary visual reference for face, body, and appearance. Keep the character highly consistent across every view. Clean modern sans-serif typography, high contrast white and yellow text on black, professional character sheet aesthetic, sharp, photorealistic.
-
-Character information:
-Name: ${nameRaw || '—'}
-Height: ${getHeight()}
-Weight: ${getWeight()}
-Role: ${val('role')}
-Appearance: ${val('appearance')}
-Style: ${val('style')}
-Vibe: ${val('vibe')}
-Notes: ${val('notes')}
-`;
-
-  const instructions = `CHARACTER SHEET PACKAGE
-======================
-
-How to use:
-1. Upload the images in the /photos folder as reference images.
-2. Paste the contents of prompt.txt as your prompt.
-3. Works with Grok, Flux, Midjourney, Ideogram, and most image generators that accept reference photos.
-
-Files:
-- prompt.txt     → full strict-layout character sheet prompt
-- photos/        → reference images (01, 02, 03...)
-`;
-
-  try {
-    const zip = new JSZip();
-    zip.file('prompt.txt', prompt);
-    zip.file('INSTRUCTIONS.txt', instructions);
-
-    const photosFolder = zip.folder('photos');
-    let photoCount = 0;
-    for (let i = 0; i < photoFiles.length; i++) {
-      if (photoFiles[i]) {
-        const ext = photoFiles[i].name.split('.').pop() || 'png';
-        photosFolder.file(`0${i+1}.${ext}`, photoFiles[i]);
-        photoCount++;
-      }
-    }
-
-    const blob = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${name}_character_sheet.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    status.textContent = `Downloaded ${name}_character_sheet.zip (${photoCount} photo${photoCount === 1 ? '' : 's'})`;
-  } catch (err) {
-    status.textContent = 'Error building zip: ' + err.message;
+- Section titled "DETAILS" with three stacked close-up crops
+- Section titled "NOTES" with a short paragraph`;
+  } else if (format === 'white') {
+    layout = `CLEAN WHITE CHARACTER SHEET. White background, dark text, minimal professional layout.
+Large name "${data.name}", stats, appearance, style, vibe sections.
+Three reference photos on top. Full-body turnaround (FRONT LEFT RIGHT BACK) at bottom. Details and notes on the right.`;
+  } else {
+    layout = `VERTICAL 9:16 CHARACTER SHEET for stories. Dark background.
+Name "${data.name}" at top. Stacked photos, turnaround strip, key stats and vibe. Optimized for mobile viewing.`;
   }
 
+  const blankNote = blank ? '\n\nLeave all text areas as solid color blocks (no rendered text) so labels can be overlaid cleanly later.' : '';
+
+  return `${layout}
+${consistency}
+${blankNote}
+
+Character information:
+Name: ${data.name}
+Height: ${data.height}
+Weight: ${data.weight}
+Role: ${data.role}
+Appearance: ${data.appearance}
+Style: ${data.style}
+Vibe: ${data.vibe}
+Notes: ${data.notes}
+`;
+}
+
+function updatePreview() {
+  const blocks = document.querySelectorAll('.char-block');
+  if (!blocks.length) return;
+  const data = getCharData(blocks[0]);
+  const char = characters.find(c => c.el === blocks[0]);
+  document.getElementById('pName').textContent = data.name;
+  document.getElementById('pStats').textContent = `${data.role} · ${data.height} · ${data.weight}`;
+  document.getElementById('pApp').textContent = data.appearance.slice(0, 120) + (data.appearance.length > 120 ? '…' : '');
+  document.getElementById('pStyle').textContent = data.style.slice(0, 80);
+  document.getElementById('pVibe').textContent = data.vibe.slice(0, 80);
+  const palette = document.getElementById('pPalette');
+  const sw = document.getElementById('previewSwatches');
+  palette.innerHTML = '';
+  sw.innerHTML = '';
+  (char?.colors || []).forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'palette-swatch';
+    d.style.background = c;
+    palette.appendChild(d);
+    const s = document.createElement('div');
+    s.className = 'swatch';
+    s.style.background = c;
+    sw.appendChild(s);
+  });
+}
+
+document.getElementById('addChar').onclick = () => createCharBlock();
+document.getElementById('save').onclick = () => {
+  const data = [];
+  document.querySelectorAll('.char-block').forEach(b => data.push(getCharData(b)));
+  localStorage.setItem('cs-profiles', JSON.stringify(data));
+  document.getElementById('status').textContent = 'Profile saved locally.';
+};
+document.getElementById('load').onclick = () => {
+  const raw = localStorage.getItem('cs-profiles');
+  if (!raw) return;
+  document.getElementById('characters').innerHTML = '';
+  characters = [];
+  JSON.parse(raw).forEach(d => createCharBlock(d));
+  document.getElementById('status').textContent = 'Loaded last profile.';
+};
+document.getElementById('openGrok').onclick = () => {
+  const blocks = document.querySelectorAll('.char-block');
+  if (!blocks.length) return;
+  const data = getCharData(blocks[0]);
+  const prompt = buildPrompt(data, document.getElementById('format').value, document.getElementById('strength').value, document.getElementById('blankText').checked);
+  navigator.clipboard.writeText(prompt);
+  document.getElementById('status').textContent = 'Prompt copied. Paste it in Grok and attach your photos.';
+  window.open('https://grok.x.ai', '_blank');
+};
+
+document.getElementById('generate').onclick = async () => {
+  const status = document.getElementById('status');
+  const btn = document.getElementById('generate');
+  btn.disabled = true;
+  status.textContent = 'Building zip…';
+
+  const format = document.getElementById('format').value;
+  const strength = document.getElementById('strength').value;
+  const variations = parseInt(document.getElementById('variations').value, 10);
+  const blank = document.getElementById('blankText').checked;
+  const turnaround = document.getElementById('turnaroundOnly').checked;
+
+  const zip = new JSZip();
+  const blocks = document.querySelectorAll('.char-block');
+
+  for (let ci = 0; ci < blocks.length; ci++) {
+    const block = blocks[ci];
+    const data = getCharData(block);
+    const char = characters.find(c => c.el === block);
+    const folderName = blocks.length > 1 ? `character_${ci+1}_${data.name.replace(/[^a-z0-9]/gi,'_')}` : data.name.replace(/[^a-z0-9]/gi,'_') || 'character';
+    const folder = zip.folder(folderName);
+
+    for (let v = 1; v <= variations; v++) {
+      let prompt = buildPrompt(data, format, strength, blank);
+      if (variations > 1) prompt = `VARIATION ${v}\n\n` + prompt + `\n\nSlight lighting and crop variation ${v}.`;
+      folder.file(variations > 1 ? `prompt_v${v}.txt` : 'prompt.txt', prompt);
+    }
+
+    if (turnaround) {
+      folder.file('turnaround_prompt.txt', `Full-body turnaround only. White background. FRONT LEFT PROFILE RIGHT PROFILE BACK. Shirtless, black pants. Exact same person from references. Consistent face and body across all four angles.\n\n${data.name} — ${data.appearance}`);
+    }
+
+    folder.file('INSTRUCTIONS.txt', `Upload photos/ as references.\nPaste prompt.txt (or prompt_v*.txt).\nWorks in Grok, Flux, Midjourney, etc.`);
+
+    const photosFolder = folder.folder('photos');
+    let count = 0;
+    for (let i = 0; i < char.files.length; i++) {
+      if (char.files[i]) {
+        const ext = char.files[i].name.split('.').pop() || 'png';
+        photosFolder.file(`0${i+1}.${ext}`, char.files[i]);
+        count++;
+      }
+    }
+    if (char.colors.length) {
+      folder.file('palette.txt', char.colors.join('\n'));
+    }
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'character_sheets.zip';
+  a.click();
+  status.textContent = 'Downloaded character_sheets.zip';
   btn.disabled = false;
-});
+};
+
+// Init
+createCharBlock();
 </script>
 </body>
 </html>
