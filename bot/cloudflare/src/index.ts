@@ -1,22 +1,15 @@
 import { Container } from "@cloudflare/containers";
+import { env } from "cloudflare:workers";
 
 export class RefSheetBot extends Container {
   defaultPort = 8080;
   sleepAfter = "30m";
 
-  // Pass Worker secrets into the container
+  // Pass Worker secrets into the container at start
   envVars = {
-    BOT_TOKEN: "",
-    ADMIN_ID: "",
+    BOT_TOKEN: env.BOT_TOKEN,
+    ADMIN_ID: env.ADMIN_ID,
   };
-
-  constructor(ctx: DurableObjectState, env: Env) {
-    super(ctx, env);
-    this.envVars = {
-      BOT_TOKEN: env.BOT_TOKEN || "",
-      ADMIN_ID: env.ADMIN_ID || "",
-    };
-  }
 
   override onStart() {
     console.log("RefSheet bot container started");
