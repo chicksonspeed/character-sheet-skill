@@ -191,6 +191,8 @@
       <button id="generate">Download Zip</button>
       <button class="secondary" id="openGrok">Copy for Grok</button>
     </div>
+    <button class="secondary" id="sendToBuilder" style="margin-top:8px;">Send package to builder</button>
+    <p class="note" style="text-align:center;">For people without Grok — sends prompt + photos so the sheet can be made for you.</p>
     <div class="btn-row">
       <button class="secondary" id="save">Save Profile</button>
       <button class="secondary" id="load">Load Last</button>
@@ -551,6 +553,68 @@ document.getElementById('generate').onclick = async () => {
   a.click();
   status.textContent = 'Downloaded character_sheets.zip';
   btn.disabled = false;
+};
+
+
+document.getElementById('sendToBuilder').onclick = async () => {
+  const status = document.getElementById('status');
+  const blocks = document.querySelectorAll('.char-block');
+  if (!blocks.length) return;
+
+  status.textContent = 'Preparing package…';
+
+  const format = document.getElementById('format').value;
+  const strength = document.getElementById('strength').value;
+  const blank = document.getElementById('blankText').checked;
+
+  const zip = new JSZip();
+  const block = blocks[0];
+  const data = getCharData(block);
+  const char = characters.find(c => c.el === block);
+
+  const prompt = buildPrompt(data, format, strength, blank);
+  zip.file('prompt.txt', prompt);
+  zip.file('INSTRUCTIONS.txt', 'Upload the photos and paste prompt.txt into an image generator.');
+
+  const photosFolder = zip.folder('photos');
+  const filesToShare = [];
+  for (let i = 0; i < char.files.length; i++) {
+    if (char.files[i]) {
+      const ext = char.files[i].name.split('.').pop() || 'png';
+      photosFolder.file(`0${i+1}.${ext}`, char.files[i]);
+      filesToShare.push(new File([char.files[i]], `photo_${i+1}.${ext}`, { type: char.files[i].type }));
+    }
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const zipFile = new File([blob], `${data.name.replace(/[^a-z0-9]/gi,'_')}_character_sheet.zip`, { type: 'application/zip' });
+
+  // Try Web Share API first (works well on mobile)
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [zipFile] })) {
+    try {
+      await navigator.share({
+        title: `Character sheet for ${data.name}`,
+        text: `Please generate a character sheet for ${data.name}.\n\nPrompt is inside the zip.`,
+        files: [zipFile]
+      });
+      status.textContent = 'Shared successfully.';
+      return;
+    } catch (e) {
+      // user cancelled or failed, fall through
+    }
+  }
+
+  // Fallback: download zip + open email with prompt
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = zipFile.name;
+  a.click();
+
+  const subject = encodeURIComponent(`Character sheet request: ${data.name}`);
+  const body = encodeURIComponent(`Hi,\n\nPlease generate a character sheet for ${data.name}.\n\nI've attached the zip with photos and prompt.txt.\n\n---\n${prompt.slice(0, 1500)}`);
+  window.location.href = `mailto:YOUR_EMAIL_HERE?subject=${subject}&body=${body}`;
+
+  status.textContent = 'Zip downloaded. Email opened — attach the zip and send.';
 };
 
 // Init
