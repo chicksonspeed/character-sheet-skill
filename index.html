@@ -29,15 +29,8 @@
     margin: 0 auto;
     padding: 40px 20px 80px;
   }
-  h1 {
-    font-size: 2.4rem;
-    margin: 0 0 8px;
-    letter-spacing: -0.03em;
-  }
-  .subtitle {
-    color: var(--muted);
-    margin-bottom: 32px;
-  }
+  h1 { font-size: 2.4rem; margin: 0 0 8px; letter-spacing: -0.03em; }
+  .subtitle { color: var(--muted); margin-bottom: 32px; }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -64,7 +57,7 @@
     font-size: 1rem;
     font-family: inherit;
   }
-  textarea { min-height: 80px; resize: vertical; }
+  textarea { min-height: 70px; resize: vertical; }
   input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--accent);
@@ -75,6 +68,31 @@
     gap: 16px;
   }
   @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+  .hw-row {
+    display: grid;
+    grid-template-columns: 1fr 90px;
+    gap: 8px;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0 4px;
+  }
+  .tag {
+    background: #0e0c10;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .tag:hover, .tag.active {
+    border-color: var(--accent);
+    background: rgba(227, 93, 140, 0.12);
+  }
   .photos {
     display: flex;
     gap: 12px;
@@ -91,20 +109,10 @@
     justify-content: center;
     cursor: pointer;
     overflow: hidden;
-    position: relative;
     background: #0e0c10;
   }
-  .photo-slot img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .photo-slot span {
-    font-size: 0.75rem;
-    color: var(--muted);
-    text-align: center;
-    padding: 8px;
-  }
+  .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-slot span { font-size: 0.75rem; color: var(--muted); text-align: center; padding: 8px; }
   button {
     background: var(--accent);
     color: white;
@@ -119,16 +127,8 @@
   }
   button:hover { filter: brightness(1.1); }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
-  .note {
-    font-size: 0.85rem;
-    color: var(--muted);
-    margin-top: 6px;
-  }
-  .success {
-    color: var(--accent2);
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
+  .note { font-size: 0.85rem; color: var(--muted); margin-top: 6px; }
+  .success { color: var(--accent2); font-weight: 600; margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -144,27 +144,55 @@
       </div>
       <div>
         <label>Role / Stats</label>
-        <input id="role" placeholder="Versatile" />
+        <select id="role">
+          <option value="">Select…</option>
+          <option>Versatile</option>
+          <option>Top</option>
+          <option>Bottom</option>
+          <option>Switch</option>
+          <option>Vers Top</option>
+          <option>Vers Bottom</option>
+        </select>
       </div>
     </div>
+
     <div class="row">
       <div>
         <label>Height</label>
-        <input id="height" placeholder="182 cm (6'0")" />
+        <div class="hw-row">
+          <input id="heightValue" type="number" min="140" max="220" placeholder="182" />
+          <select id="heightUnit">
+            <option value="cm">cm</option>
+            <option value="ft">ft/in</option>
+          </select>
+        </div>
       </div>
       <div>
         <label>Weight</label>
-        <input id="weight" placeholder="73 kg (161 lbs)" />
+        <div class="hw-row">
+          <input id="weightValue" type="number" min="40" max="200" placeholder="73" />
+          <select id="weightUnit">
+            <option value="kg">kg</option>
+            <option value="lbs">lbs</option>
+          </select>
+        </div>
       </div>
     </div>
+
     <label>Appearance</label>
-    <textarea id="appearance" placeholder="Athletic / lean muscular build, medium tan skin, brown eyes, short textured pink hair, well-groomed beard, strong jawline..."></textarea>
+    <div class="tags" id="appearanceTags"></div>
+    <textarea id="appearance" placeholder="Click tags above or type your own…"></textarea>
+
     <label>Personal Style</label>
-    <textarea id="style" placeholder="Edgy, confident, stylish. Switches between laid-back casual and refined. Accessories: chain necklace, sunglasses."></textarea>
+    <div class="tags" id="styleTags"></div>
+    <textarea id="style" placeholder="Click tags above or type your own…"></textarea>
+
     <label>Vibe</label>
-    <textarea id="vibe" placeholder="Cool, versatile, approachable, with a hint of mystery."></textarea>
+    <div class="tags" id="vibeTags"></div>
+    <textarea id="vibe" placeholder="Click tags above or type your own…"></textarea>
+
     <label>Extra Notes</label>
-    <textarea id="notes" placeholder="Anything else for the NOTES section..."></textarea>
+    <textarea id="notes" placeholder="Anything else for the NOTES section…"></textarea>
   </div>
 
   <div class="card">
@@ -180,10 +208,59 @@
   </div>
 
   <button id="generate">Download Zip</button>
-  <div id="status" class="success" style="margin-top:12px;"></div>
+  <div id="status" class="success"></div>
 </div>
 
 <script>
+const TAGS = {
+  appearance: [
+    "athletic", "lean muscular", "muscular", "slim", "stocky",
+    "medium tan", "fair skin", "olive skin", "dark skin",
+    "brown eyes", "blue eyes", "green eyes", "hazel eyes",
+    "short hair", "textured hair", "pink hair", "blond hair", "dark hair",
+    "beard", "stubble", "clean shaven", "strong jawline",
+    "confident presence", "relaxed presence"
+  ],
+  style: [
+    "edgy", "confident", "stylish", "casual", "refined",
+    "laid-back", "streetwear", "minimal", "summer casual",
+    "chain necklace", "sunglasses", "hoodie", "leather",
+    "clean lines", "accessories"
+  ],
+  vibe: [
+    "cool", "versatile", "approachable", "mysterious",
+    "playful", "intense", "chill", "confident",
+    "flirty", "aloof", "warm", "magnetic"
+  ]
+};
+
+function setupTags(containerId, textareaId, words) {
+  const container = document.getElementById(containerId);
+  const textarea = document.getElementById(textareaId);
+  words.forEach(word => {
+    const el = document.createElement('span');
+    el.className = 'tag';
+    el.textContent = word;
+    el.addEventListener('click', () => {
+      const current = textarea.value.trim();
+      const parts = current ? current.split(/,\s*/).filter(Boolean) : [];
+      if (parts.includes(word)) {
+        textarea.value = parts.filter(p => p !== word).join(', ');
+        el.classList.remove('active');
+      } else {
+        parts.push(word);
+        textarea.value = parts.join(', ');
+        el.classList.add('active');
+      }
+    });
+    container.appendChild(el);
+  });
+}
+
+setupTags('appearanceTags', 'appearance', TAGS.appearance);
+setupTags('styleTags', 'style', TAGS.style);
+setupTags('vibeTags', 'vibe', TAGS.vibe);
+
 const photos = [null, null, null, null];
 const photoFiles = [null, null, null, null];
 const fileInput = document.getElementById('fileInput');
@@ -211,6 +288,27 @@ fileInput.addEventListener('change', () => {
   fileInput.value = '';
 });
 
+function getHeight() {
+  const v = document.getElementById('heightValue').value.trim();
+  const unit = document.getElementById('heightUnit').value;
+  if (!v) return '—';
+  if (unit === 'cm') return `${v} cm`;
+  // rough ft/in conversion display
+  const totalIn = Math.round(parseFloat(v) / 2.54);
+  const ft = Math.floor(totalIn / 12);
+  const inches = totalIn % 12;
+  return `${v} cm (${ft}'${inches}")`;
+}
+
+function getWeight() {
+  const v = document.getElementById('weightValue').value.trim();
+  const unit = document.getElementById('weightUnit').value;
+  if (!v) return '—';
+  if (unit === 'kg') return `${v} kg`;
+  const kg = Math.round(parseFloat(v) / 2.2046);
+  return `${v} lbs (${kg} kg)`;
+}
+
 function val(id) {
   return document.getElementById(id).value.trim() || '—';
 }
@@ -221,11 +319,13 @@ document.getElementById('generate').addEventListener('click', async () => {
   btn.disabled = true;
   status.textContent = 'Building zip...';
 
-  const name = val('name').replace(/[^a-z0-9]/gi, '_') || 'character';
+  const nameRaw = val('name');
+  const name = nameRaw.replace(/[^a-z0-9]/gi, '_') || 'character';
+
   const prompt = `STRICT CHARACTER REFERENCE SHEET LAYOUT. Black background. Do not deviate from this structure.
 
 LEFT SIDEBAR (narrow vertical panel, black background):
-- Very large bold white text: "${val('name')}"
+- Very large bold white text: "${nameRaw || 'CHARACTER'}"
 - Small yellow text underneath: "CHARACTER SHEET"
 - Status block: "ONLINE" + time + distance
 - Section titled "STATS" with three lines (role, height, weight) with small icons
@@ -249,9 +349,9 @@ FAR RIGHT PANEL:
 Use the uploaded photos as the primary visual reference for face, body, and appearance. Keep the character highly consistent across every view. Clean modern sans-serif typography, high contrast white and yellow text on black, professional character sheet aesthetic, sharp, photorealistic.
 
 Character information:
-Name: ${val('name')}
-Height: ${val('height')}
-Weight: ${val('weight')}
+Name: ${nameRaw || '—'}
+Height: ${getHeight()}
+Weight: ${getWeight()}
 Role: ${val('role')}
 Appearance: ${val('appearance')}
 Style: ${val('style')}
