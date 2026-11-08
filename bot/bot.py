@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Character Sheet Telegram Bot
-Collects character info + photos and builds a zip package
-that can be used in any image model (or forwarded to an admin).
+RefSheet Telegram Bot
 """
-
 import os
 import io
 import zipfile
 import logging
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -20,18 +19,11 @@ from telegram.ext import (
     filters,
 )
 
-# ---------- Config ----------
 BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))  # Your Telegram user ID
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0") or "0")
 
-# Conversation states
-(
-    NAME, HEIGHT, WEIGHT,
-    APPEARANCE, STYLE, VIBE, NOTES,
-    PHOTOS, CONFIRM
-) = range(10)
+(NAME, HEIGHT, WEIGHT, APPEARANCE, STYLE, VIBE, NOTES, PHOTOS) = range(8)
 
-# Tag sets
 TAGS = {
     "body": ["athletic", "lean muscular", "muscular", "slim", "stocky", "toned", "v-taper", "broad shoulders"],
     "skin": ["medium tan", "fair skin", "olive skin", "dark skin", "sun-kissed", "pale"],
@@ -41,11 +33,23 @@ TAGS = {
     "vibe": ["cool", "mysterious", "playful", "chill", "confident", "flirty", "magnetic"],
 }
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"ok")
+    def log_message(self, format, *args):
+        pass
 
-def tag_keyboard(category: str, selected: list) -> InlineKeyboardMarkup:
+def start_health_server():
+    server = HTTPServer(("0.0.0.0", 8080), HealthHandler)
+    logger.info("Health server listening on :8080")
+    server.serve_forever()
+
+def tag_keyboard(category, selected):
     buttons = []
     row = []
     for tag in TAGS.get(category, []):
@@ -59,42 +63,33 @@ def tag_keyboard(category: str, selected: list) -> InlineKeyboardMarkup:
     buttons.append([InlineKeyboardButton("Done", callback_data=f"done:{category}")])
     return InlineKeyboardMarkup(buttons)
 
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
     context.user_data["photos"] = []
     context.user_data["selected"] = {"appearance": [], "style": [], "vibe": []}
     await update.message.reply_text(
-        "RefSheet\n\n"
-        "I'll ask a few questions, then you can upload photos.\n"
-        "At the end you'll get a zip you can drop into any image model.\n\n"
-        "What's the character's name?"
+        "RefSheet\n\nI'll ask a few questions, then you can upload photos.\n\nWhat's the character's name?"
     )
     return NAME
 
-
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["name"] = update.message.text.strip()
-    await update.message.reply_text("Height? (e.g. 182 cm or 6'0\")")
+    await update.message.reply_text("Height? (e.g. 182 cm)")
     return HEIGHT
-
 
 async def get_height(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["height"] = update.message.text.strip()
-    await update.message.reply_text("Weight? (e.g. 73 kg or 161 lbs)")
+    await update.message.reply_text("Weight? (e.g. 73 kg)")
     return WEIGHT
-
 
 async def get_weight(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["weight"] = update.message.text.strip()
     await update.message.reply_text(
-        "Appearance — tap tags to add them, then press Done.",
+        "Appearance — tap tags, then Done.",
         reply_markup=tag_keyboard("body", [])
     )
     context.user_data["appearance_stage"] = "body"
     return APPEARANCE
-
-
 
 async def appearance_tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
@@ -102,100 +97,73 @@ async def appearance_tags(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     data = query.data
     stage = context.user_data.get("appearance_stage", "body")
     selected = context.user_data["selected"]["appearance"]
-
     if data.startswith("tag:"):
-        _, cat, tag = data.split(":", 2)
+        tag = data.split(":", 2)[2]
         if tag in selected:
             selected.remove(tag)
         else:
             selected.append(tag)
         await query.edit_message_reply_markup(tag_keyboard(stage, selected))
         return APPEARANCE
-
     if data.startswith("done:"):
         stages = ["body", "skin", "hair", "face"]
         idx = stages.index(stage)
         if idx + 1 < len(stages):
             next_stage = stages[idx + 1]
             context.user_data["appearance_stage"] = next_stage
-            await query.edit_message_text(
-                f"Appearance — {next_stage.title()}",
-                reply_markup=tag_keyboard(next_stage, selected)
-            )
+            await query.edit_message_text(f"Appearance — {next_stage.title()}", reply_markup=tag_keyboard(next_stage, selected))
             return APPEARANCE
-        else:
-            context.user_data["appearance"] = ", ".join(selected)
-            await query.edit_message_text(f"Appearance: {context.user_data['appearance'] or '—'}")
-            await query.message.reply_text(
-                "Personal style — tap tags, then Done.",
-                reply_markup=tag_keyboard("style", context.user_data["selected"]["style"])
-            )
-            return STYLE
+        context.user_data["appearance"] = ", ".join(selected)
+        await query.edit_message_text(f"Appearance: {context.user_data['appearance'] or '—'}")
+        await query.message.reply_text("Personal style — tap tags, then Done.", reply_markup=tag_keyboard("style", []))
+        return STYLE
     return APPEARANCE
-
 
 async def style_tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
     data = query.data
     selected = context.user_data["selected"]["style"]
-
     if data.startswith("tag:"):
         tag = data.split(":", 2)[2]
-        if tag in selected:
-            selected.remove(tag)
-        else:
-            selected.append(tag)
+        if tag in selected: selected.remove(tag)
+        else: selected.append(tag)
         await query.edit_message_reply_markup(tag_keyboard("style", selected))
         return STYLE
-
     if data.startswith("done:"):
         context.user_data["style"] = ", ".join(selected)
         await query.edit_message_text(f"Style: {context.user_data['style'] or '—'}")
-        await query.message.reply_text(
-            "Vibe — tap tags, then Done.",
-            reply_markup=tag_keyboard("vibe", context.user_data["selected"]["vibe"])
-        )
+        await query.message.reply_text("Vibe — tap tags, then Done.", reply_markup=tag_keyboard("vibe", []))
         return VIBE
     return STYLE
-
 
 async def vibe_tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
     data = query.data
     selected = context.user_data["selected"]["vibe"]
-
     if data.startswith("tag:"):
         tag = data.split(":", 2)[2]
-        if tag in selected:
-            selected.remove(tag)
-        else:
-            selected.append(tag)
+        if tag in selected: selected.remove(tag)
+        else: selected.append(tag)
         await query.edit_message_reply_markup(tag_keyboard("vibe", selected))
         return VIBE
-
     if data.startswith("done:"):
         context.user_data["vibe"] = ", ".join(selected)
         await query.edit_message_text(f"Vibe: {context.user_data['vibe'] or '—'}")
-        await query.message.reply_text("Any extra notes? (or send /skip)")
+        await query.message.reply_text("Any extra notes? (or /skip)")
         return NOTES
     return VIBE
-
 
 async def get_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     text = update.message.text.strip()
     context.user_data["notes"] = "" if text == "/skip" else text
-    await update.message.reply_text(
-        "Now send 1–4 reference photos (face close-up + body shots work best).\n"
-        "Send /done when finished."
-    )
+    await update.message.reply_text("Send 1–4 photos. /done when finished.")
     return PHOTOS
-
 
 async def get_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if len(context.user_data["photos"]) >= 4:
-        await update.message.reply_text("Max 4 photos. Send /done to continue.")
+        await update.message.reply_text("Max 4. Send /done.")
         return PHOTOS
     photo = update.message.photo[-1]
     file = await photo.get_file()
@@ -203,101 +171,59 @@ async def get_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await file.download_to_memory(bio)
     bio.seek(0)
     context.user_data["photos"].append(bio.getvalue())
-    await update.message.reply_text(f"Photo {len(context.user_data['photos'])} saved. Send more or /done.")
+    await update.message.reply_text(f"Photo {len(context.user_data['photos'])} saved. More or /done.")
     return PHOTOS
 
+def build_prompt(data):
+    return f"""STRICT CHARACTER REFERENCE SHEET LAYOUT. Black background.
+
+Name: {data.get('name','—')}
+Height: {data.get('height','—')}
+Weight: {data.get('weight','—')}
+Appearance: {data.get('appearance','—')}
+Style: {data.get('style','—')}
+Vibe: {data.get('vibe','—')}
+Notes: {data.get('notes','—')}
+
+LEFT SIDEBAR with name, stats, appearance, style, vibe, palettes.
+TOP: three reference photos.
+BOTTOM: FRONT | LEFT | RIGHT | BACK turnaround.
+RIGHT: details + notes.
+Same person in every view."""
 
 async def photos_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if not context.user_data["photos"]:
-        await update.message.reply_text("Please send at least one photo.")
+        await update.message.reply_text("Send at least one photo.")
         return PHOTOS
-    await send_package(update, context)
-    return ConversationHandler.END
-
-
-def build_prompt(data: dict) -> str:
-    return f"""STRICT CHARACTER REFERENCE SHEET LAYOUT. Black background. Do not deviate from this structure.
-
-LEFT SIDEBAR:
-- Large bold white text: "{data.get('name', 'CHARACTER')}"
-- "CHARACTER SHEET"
-- STATS (height, weight)
-- APPEARANCE bullets
-- PERSONAL STYLE bullets
-- VIBE paragraph
-- COLOR PALETTE + STYLE PALETTE
-
-TOP: three reference photos labeled 01 02 03
-BOTTOM: FRONT | LEFT PROFILE | RIGHT PROFILE | BACK turnaround (shirtless, black pants)
-RIGHT: DETAILS close-ups + NOTES
-
-Consistency: exact same person in every view. Lock face, hair, body from references.
-
-Character information:
-Name: {data.get('name', '—')}
-Height: {data.get('height', '—')}
-Weight: {data.get('weight', '—')}
-Appearance: {data.get('appearance', '—')}
-Style: {data.get('style', '—')}
-Vibe: {data.get('vibe', '—')}
-Notes: {data.get('notes', '—')}
-"""
-
-
-async def send_package(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = context.user_data
     prompt = build_prompt(data)
-
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("prompt.txt", prompt)
-        zf.writestr("INSTRUCTIONS.txt", "Upload the photos and paste prompt.txt into Grok, Flux, Midjourney, etc.")
-        for i, photo_bytes in enumerate(data["photos"], 1):
-            zf.writestr(f"photos/0{i}.jpg", photo_bytes)
+        for i, p in enumerate(data["photos"], 1):
+            zf.writestr(f"photos/0{i}.jpg", p)
     buf.seek(0)
-
     name = data.get("name", "character").replace(" ", "_")
-    caption = f"Character sheet package for {data.get('name')}\n\nDrop the photos + prompt.txt into any image model."
-
-    await update.message.reply_document(
-        document=buf,
-        filename=f"{name}_character_sheet.zip",
-        caption=caption
-    )
-
-    # Forward to admin if configured
+    await update.message.reply_document(document=buf, filename=f"{name}_refsheet.zip", caption="Your RefSheet package")
     if ADMIN_ID:
         try:
             buf.seek(0)
-            await context.bot.send_document(
-                chat_id=ADMIN_ID,
-                document=buf,
-                filename=f"{name}_character_sheet.zip",
-                caption=f"New request from @{update.effective_user.username or update.effective_user.id}\n{caption}"
-            )
+            await context.bot.send_document(chat_id=ADMIN_ID, document=buf, filename=f"{name}_refsheet.zip", caption=f"From @{update.effective_user.username or update.effective_user.id}")
         except Exception as e:
-            logger.warning(f"Could not forward to admin: {e}")
-
-    await update.message.reply_text("Done. Send /start to make another.")
-
-
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("Cancelled. /start to begin again.")
+            logger.warning(f"Admin forward failed: {e}")
+    await update.message.reply_text("Done. /start for another.")
     return ConversationHandler.END
 
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("Cancelled. /start to begin.")
+    return ConversationHandler.END
 
-def main():
-    import sys, time
-    print(f"BOT_TOKEN present: {bool(BOT_TOKEN and BOT_TOKEN != 'YOUR_BOT_TOKEN_HERE')}", flush=True)
-    print(f"ADMIN_ID: {ADMIN_ID}", flush=True)
-    print(f"Python: {sys.version}", flush=True)
+def run_bot():
     if not BOT_TOKEN or BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
-        print("ERROR: BOT_TOKEN not set. Sleeping 60s so logs can be read...", flush=True)
-        time.sleep(60)
+        logger.error("BOT_TOKEN not set. Bot will not start.")
         return
-
+    logger.info("Starting Telegram bot...")
     app = Application.builder().token(BOT_TOKEN).build()
-
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
@@ -308,19 +234,23 @@ def main():
             STYLE: [CallbackQueryHandler(style_tags)],
             VIBE: [CallbackQueryHandler(vibe_tags)],
             NOTES: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_notes)],
-            PHOTOS: [
-                MessageHandler(filters.PHOTO, get_photo),
-                CommandHandler("done", photos_done),
-            ],
+            PHOTOS: [MessageHandler(filters.PHOTO, get_photo), CommandHandler("done", photos_done)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
-
     app.add_handler(conv)
-    app.add_handler(CommandHandler("start", start))
-    print("Bot running…")
     app.run_polling()
 
-
 if __name__ == "__main__":
-    main()
+    logger.info(f"BOT_TOKEN present: {bool(BOT_TOKEN and BOT_TOKEN != 'YOUR_BOT_TOKEN_HERE')}")
+    logger.info(f"ADMIN_ID: {ADMIN_ID}")
+    # Health server keeps the container alive for Cloudflare
+    threading.Thread(target=start_health_server, daemon=True).start()
+    try:
+        run_bot()
+    except Exception as e:
+        logger.exception(f"Bot crashed: {e}")
+    # Keep process alive
+    import time
+    while True:
+        time.sleep(60)
