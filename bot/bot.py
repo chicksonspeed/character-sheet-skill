@@ -156,10 +156,16 @@ async def vibe_tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return VIBE
 
 async def get_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text.strip()
-    context.user_data["notes"] = "" if text == "/skip" else text
-    await update.message.reply_text("Send 1–4 photos. /done when finished.")
-    return PHOTOS
+    try:
+        text = (update.message.text or "").strip()
+        context.user_data["notes"] = "" if text.lower() in ("/skip", "skip", "no", "none") else text
+        logger.info(f"Notes received: {context.user_data['notes']!r}")
+        await update.message.reply_text("Send 1–4 photos. /done when finished.")
+        return PHOTOS
+    except Exception as e:
+        logger.exception(f"get_notes failed: {e}")
+        await update.message.reply_text("Something went wrong. Send /start to try again.")
+        return ConversationHandler.END
 
 async def get_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if len(context.user_data["photos"]) >= 4:
