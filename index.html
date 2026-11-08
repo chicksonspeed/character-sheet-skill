@@ -180,7 +180,14 @@
     </div>
 
     <label>Appearance</label>
-    <div class="tags" id="appearanceTags"></div>
+    <div style="font-size:0.75rem;color:#9b97a6;margin:6px 0 2px;">Body Type</div>
+    <div class="tags" id="bodyTags"></div>
+    <div style="font-size:0.75rem;color:#9b97a6;margin:10px 0 2px;">Skin</div>
+    <div class="tags" id="skinTags"></div>
+    <div style="font-size:0.75rem;color:#9b97a6;margin:10px 0 2px;">Hair</div>
+    <div class="tags" id="hairTags"></div>
+    <div style="font-size:0.75rem;color:#9b97a6;margin:10px 0 2px;">Eyes & Face</div>
+    <div class="tags" id="faceTags"></div>
     <textarea id="appearance" placeholder="Click tags above or type your own…"></textarea>
 
     <label>Personal Style</label>
@@ -213,15 +220,30 @@
 
 <script>
 const TAGS = {
-  appearance: [
-    "athletic", "lean muscular", "muscular", "slim", "stocky", "toned", "broad shoulders", "narrow waist", "defined abs", "thick thighs", "long legs",
-    "medium tan", "fair skin", "olive skin", "dark skin", "light skin", "sun-kissed", "pale", "freckles",
-    "brown eyes", "blue eyes", "green eyes", "hazel eyes", "dark eyes", "light eyes", "grey eyes", "amber eyes",
-    "short hair", "textured hair", "messy hair", "styled hair", "undercut", "buzzed", "long hair", "curly hair", "wavy hair", "straight hair",
-    "pink hair", "blond hair", "dark hair", "brown hair", "black hair", "dyed hair", "bleached hair", "silver hair", "red hair", "blue hair",
-    "beard", "full beard", "stubble", "clean shaven", "mustache", "goatee", "trimmed beard", "patchy beard",
-    "strong jawline", "soft features", "sharp features", "high cheekbones", "full lips", "defined brows", "thick brows", "narrow eyes",
-    "confident presence", "relaxed presence", "intense gaze", "friendly face", "smirk", "serious expression", "boyish face", "mature face"
+  body: [
+    "athletic", "lean muscular", "muscular", "slim", "stocky", "toned", "broad shoulders",
+    "narrow waist", "defined abs", "thick thighs", "long legs", "compact", "tall frame",
+    "short frame", "v-taper", "soft", "cut", "bulk", "swimmer build", "runner build"
+  ],
+  skin: [
+    "medium tan", "fair skin", "olive skin", "dark skin", "light skin", "sun-kissed",
+    "pale", "freckles", "warm undertone", "cool undertone", "neutral undertone",
+    "golden", "porcelain", "deep", "medium", "light medium"
+  ],
+  hair: [
+    "short hair", "textured hair", "messy hair", "styled hair", "undercut", "buzzed",
+    "long hair", "curly hair", "wavy hair", "straight hair", "slicked back",
+    "pink hair", "blond hair", "dark hair", "brown hair", "black hair", "dyed hair",
+    "bleached hair", "silver hair", "red hair", "blue hair", "platinum", "ash blond",
+    "crew cut", "fade", "man bun", "middle part", "side part"
+  ],
+  face: [
+    "brown eyes", "blue eyes", "green eyes", "hazel eyes", "dark eyes", "light eyes",
+    "grey eyes", "amber eyes", "beard", "full beard", "stubble", "clean shaven",
+    "mustache", "goatee", "trimmed beard", "strong jawline", "soft features",
+    "sharp features", "high cheekbones", "full lips", "defined brows", "thick brows",
+    "confident presence", "relaxed presence", "intense gaze", "friendly face",
+    "smirk", "serious expression", "boyish face", "mature face"
   ],
   style: [
     "edgy", "confident", "stylish", "casual", "refined", "laid-back", "streetwear", "minimal", "summer casual", "clean lines",
@@ -263,7 +285,10 @@ function setupTags(containerId, textareaId, words) {
   });
 }
 
-setupTags('appearanceTags', 'appearance', TAGS.appearance);
+setupTags('bodyTags', 'appearance', TAGS.body);
+setupTags('skinTags', 'appearance', TAGS.skin);
+setupTags('hairTags', 'appearance', TAGS.hair);
+setupTags('faceTags', 'appearance', TAGS.face);
 setupTags('styleTags', 'style', TAGS.style);
 setupTags('vibeTags', 'vibe', TAGS.vibe);
 
