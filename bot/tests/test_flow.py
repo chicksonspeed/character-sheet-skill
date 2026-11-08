@@ -6,6 +6,7 @@ import datetime
 import io
 import os
 import sys
+import types
 import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,6 +19,8 @@ from telegram.ext import Application
 
 import bot
 
+N_STAGES = len(bot.STAGES)
+
 
 class _File:
     async def download_to_memory(self, b):
@@ -26,16 +29,27 @@ class _File:
 
 @pytest.fixture
 def harness(monkeypatch):
-    out, docs = [], []
+    out, edits, docs, alerts, deleted = [], [], [], [], []
 
-    async def reply_text(self, text=None, *a, **k):
+    async def reply_text(self, text=None, *a, reply_markup=None, **k):
         out.append(text)
+        return types.SimpleNamespace(message_id=1000 + len(out), reply_markup=reply_markup)
 
-    async def reply_document(self, *a, document=None, filename=None, **k):
-        docs.append((filename, document.getvalue()))
+    async def reply_document(self, *a, document=None, filename=None, caption=None, **k):
+        docs.append((filename, document.getvalue(), caption))
+
+    async def edit_text(self, text, *a, reply_markup=None, **k):
+        edits.append((text, reply_markup))
+
+    async def answer(self, text=None, *a, **k):
+        if text:
+            alerts.append(text)
 
     async def noop(self, *a, **k):
         return None
+
+    async def delete_message(self, chat_id=None, message_id=None, **k):
+        deleted.append(message_id)
 
     async def get_file(self, *a, **k):
         return _File()
@@ -46,8 +60,10 @@ def harness(monkeypatch):
 
     monkeypatch.setattr(Message, "reply_text", reply_text)
     monkeypatch.setattr(Message, "reply_document", reply_document)
-    for name in ("answer", "edit_message_text", "edit_message_reply_markup"):
-        monkeypatch.setattr(CallbackQuery, name, noop)
+    monkeypatch.setattr(CallbackQuery, "answer", answer)
+    monkeypatch.setattr(CallbackQuery, "edit_message_text", edit_text)
+    monkeypatch.setattr(CallbackQuery, "edit_message_reply_markup", noop)
+    monkeypatch.setattr(Bot, "delete_message", delete_message)
     monkeypatch.setattr(PhotoSize, "get_file", get_file)
     monkeypatch.setattr(Document, "get_file", get_file)
     monkeypatch.setattr(Bot, "initialize", bot_init)
@@ -80,48 +96,146 @@ def harness(monkeypatch):
                     obj.set_bot(app.bot)
             await app.process_update(up)
 
-    return type("H", (), dict(out=out, docs=docs, msg=staticmethod(msg), cb=staticmethod(cb),
-                              run=staticmethod(lambda u: asyncio.run(run(u)))))
+    h = types.SimpleNamespace(out=out, edits=edits, docs=docs, alerts=alerts, deleted=deleted,
+                              msg=msg, cb=cb, run=lambda u: asyncio.run(run(u)), app=app)
+    h.ud = lambda: app.user_data[1]
+    return h
 
 
-def _to_notes(h, name="Kai"):
-    seq = [h.msg("/start"), h.msg(name), h.msg("182 cm"), h.msg("73 kg"), h.cb("tag:body:athletic")]
-    seq += [h.cb(f"done:{s}") for s in ("body", "skin", "hair", "face", "style", "vibe")]
-    return seq
+def basics(h, name="Kai"):
+    return [h.msg("/start"), h.msg(name), h.msg("182 cm"), h.msg("73 kg")]
 
 
-def test_skip_notes_reaches_photos_and_returns_zip(harness):
+def all_next(h, start=0):
+    return [h.cb(f"n:{i}") for i in range(start, N_STAGES)]
+
+
+def photo(h):
+    return h.msg(photo=[PhotoSize("f", "u", 10, 10)])
+
+
+def zip_names(h):
+    return zipfile.ZipFile(io.BytesIO(h.docs[0][1])).namelist()
+
+
+def prompt_txt(h):
+    return zipfile.ZipFile(io.BytesIO(h.docs[0][1])).read("prompt.txt").decode()
+
+
+def test_full_flow_with_buttons(harness):
     h = harness
-    h.run(_to_notes(h) + [h.msg("/skip"), h.msg(photo=[PhotoSize("f", "u", 10, 10)]), h.msg("/done")])
-    assert "Send 1–4 photos. /done when finished." in h.out
+    h.run(basics(h) + [h.cb("t:0:0")] + all_next(h) + [h.cb("notes:skip"), h.cb("r:ok"),
+          photo(h), h.cb("ph:done")])
     assert len(h.docs) == 1
-    fname, data = h.docs[0]
+    fname, _, caption = h.docs[0]
     assert fname == "Kai_refsheet.zip"
-    names = zipfile.ZipFile(io.BytesIO(data)).namelist()
-    assert names == ["prompt.txt", "photos/01.jpg"]
+    assert zip_names(h) == ["prompt.txt", "photos/01.jpg"]
+    assert "Appearance: athletic" in prompt_txt(h)
+    assert "<b>Kai</b>" in caption
+    assert "package is ready" in h.out[-1]
 
 
-def test_text_notes_also_work(harness):
+def test_legacy_commands_still_work(harness):
     h = harness
-    h.run(_to_notes(h) + [h.msg("tattoo on left arm")])
-    assert h.out[-1] == "Send 1–4 photos. /done when finished."
+    h.run(basics(h) + all_next(h) + [h.msg("/skip"), h.cb("r:ok"), photo(h), h.msg("/done")])
+    assert len(h.docs) == 1
+
+
+def test_tags_map_to_sections(harness):
+    h = harness
+    keys = [k for k, _, _ in bot.STAGES]
+    picks = [h.cb(f"t:{keys.index('hair')}:0"), h.cb(f"t:{keys.index('wardrobe')}:0"),
+             h.cb(f"t:{keys.index('vibe')}:0")]
+    seq = basics(h)
+    for i in range(N_STAGES):
+        seq += [p for p in picks if p.callback_query.data.startswith(f"t:{i}:")]
+        seq.append(h.cb(f"n:{i}"))
+    h.run(seq + [h.msg("has a tattoo"), h.cb("r:ok"), photo(h), h.cb("ph:done")])
+    p = prompt_txt(h)
+    assert f"Appearance: {bot.TAG_OPTIONS['hair'][0]}" in p
+    assert f"Style: {bot.TAG_OPTIONS['wardrobe'][0]}" in p
+    assert f"Vibe: {bot.TAG_OPTIONS['vibe'][0]}" in p
+    assert "Notes: has a tattoo" in p
+
+
+def test_custom_tags(harness):
+    h = harness
+    h.run(basics(h) + [h.cb("c:0"), h.msg("Septum piercing, athletic,  scar over left eyebrow ,")])
+    ud = h.ud()
+    assert ud["sel"]["body"] == ["Septum piercing", "athletic", "scar over left eyebrow"]
+    assert ud["opts"]["body"][:2] == ["Septum piercing", "scar over left eyebrow"]  # customs first, no dup
+    assert h.deleted, "typed message / old card should be cleaned up"
+    assert "Septum piercing" in h.out[-1]  # fresh card shows the selection
+    # custom tags are real buttons: toggling index 0 removes it
+    h.run([h.cb("t:0:0")])
+    assert "Septum piercing" not in h.ud()["sel"]["body"]
+
+
+def test_custom_cancel_returns_to_card(harness):
+    h = harness
+    h.run(basics(h) + [h.cb("c:0"), h.cb("x:0"), h.cb("t:0:0")])
+    assert h.ud()["sel"]["body"] == [bot.TAG_OPTIONS["body"][0]]
+
+
+def test_custom_limit(harness):
+    h = harness
+    many = ", ".join(f"custom{i}" for i in range(15))
+    h.run(basics(h) + [h.cb("c:0"), h.msg(many), h.cb("c:0")])
+    assert len(h.ud()["opts"]["body"]) - len(bot.TAG_OPTIONS["body"]) == bot.MAX_CUSTOM_PER_STAGE
+    assert any("Max" in a for a in h.alerts)
+
+
+def test_pagination_and_back(harness):
+    h = harness
+    hair = [k for k, _, _ in bot.STAGES].index("hair")
+    seq = basics(h) + all_next(h)[:hair] + [h.cb(f"p:{hair}:1")]
+    h.run(seq)
+    text, kb = h.edits[-1]
+    labels = [b.text for row in kb.inline_keyboard for b in row]
+    assert bot.TAG_OPTIONS["hair"][bot.PAGE_SIZE] in labels      # page 2 shown
+    assert "page 2/3" in labels
+    h.run([h.cb(f"b:{hair}")])
+    assert h.ud()["stage"] == hair - 1
+
+
+def test_stale_menu_is_ignored(harness):
+    h = harness
+    h.run(basics(h) + [h.cb("n:0"), h.cb("t:0:0")])
+    assert h.ud()["sel"]["body"] == []
+    assert any("out of date" in a for a in h.alerts)
+
+
+def test_review_edit_goes_back_to_review(harness):
+    h = harness
+    h.run(basics(h) + all_next(h) + [h.cb("notes:skip"), h.cb("r:edit"), h.cb("t:0:1")]
+          + all_next(h) + [h.cb("r:ok"), photo(h), h.cb("ph:done")])
+    assert f"Appearance: {bot.TAG_OPTIONS['body'][1]}" in prompt_txt(h)
+    assert sum("Look right?" in (t or "") for t in h.out) == 1  # second pass re-shows card without notes step
+
+
+def test_done_without_photo(harness):
+    h = harness
+    h.run(basics(h) + all_next(h) + [h.cb("notes:skip"), h.cb("r:ok"), h.msg("/done")])
+    assert h.out[-1] == "Send at least one photo first."
+    assert not h.docs
 
 
 def test_document_image_keeps_extension_and_size_cap(harness):
     h = harness
     big = Document("b", "ub", file_name="big.png", mime_type="image/png", file_size=bot.MAX_PHOTO_BYTES + 1)
     ok = Document("d", "ud", file_name="pic.PNG", mime_type="image/png", file_size=1000)
-    h.run(_to_notes(h) + [h.msg("/skip"), h.msg(document=big), h.msg(document=ok), h.msg("/done")])
+    h.run(basics(h) + all_next(h) + [h.cb("notes:skip"), h.cb("r:ok"), h.msg(document=big),
+          h.msg(document=ok), h.cb("ph:done")])
     assert any("too large" in (t or "") for t in h.out)
-    names = zipfile.ZipFile(io.BytesIO(h.docs[0][1])).namelist()
-    assert names == ["prompt.txt", "photos/01.png"]
+    assert zip_names(h) == ["prompt.txt", "photos/01.png"]
 
 
-def test_unsafe_name_is_sanitized_in_filename(harness):
+def test_unsafe_name_is_sanitized_and_escaped(harness):
     h = harness
-    h.run(_to_notes(h, name='../"Big" Will/..') + [h.msg("/skip"),
-          h.msg(photo=[PhotoSize("f", "u", 10, 10)]), h.msg("/done")])
+    h.run(basics(h, name='../"Big" <Will>/..') + all_next(h) + [h.cb("notes:skip"), h.cb("r:ok"),
+          photo(h), h.cb("ph:done")])
     assert h.docs[0][0] == "Big_Will_refsheet.zip"
+    assert "&lt;Will&gt;" in h.docs[0][2]
 
 
 def test_message_without_session_gets_hint(harness):
@@ -132,7 +246,7 @@ def test_message_without_session_gets_hint(harness):
 
 def test_off_step_input_gets_reply(harness):
     h = harness
-    h.run([h.msg("/start"), h.msg(photo=[PhotoSize("f", "u", 10, 10)])])
+    h.run([h.msg("/start"), photo(h)])
     assert "Didn't catch that" in h.out[-1]
 
 

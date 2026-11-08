@@ -21,10 +21,11 @@ RefSheet bot. Collects info + photos and returns a zip package.
 
 - `/start` — begin
 - Answer name, height, weight
-- Tap appearance / style / vibe tags
-- Add notes, or `/skip`
-- Upload 1–4 photos (compressed or as image files, max 10 MB each)
-- `/done` — receive the zip
+- Pick tags on one updating card: body, skin, hair, eyes, face, style, wardrobe, vibe
+  (paged, ⬅ Back / Next ➜, and **➕ Add your own** for custom tags in any category)
+- Add notes, or tap Skip
+- Review the profile card — add photos, edit tags, or start over
+- Upload 1–4 photos (compressed or as image files, max 10 MB each), then tap ✅ Done
 - `/cancel` stops; `/start` restarts at any point. Sessions expire after 30 min of inactivity.
 
 The zip contains `prompt.txt` + `photos/`. If `ADMIN_ID` is set, a copy is also forwarded to the admin.
