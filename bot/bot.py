@@ -287,10 +287,13 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 def main():
-    print(f"BOT_TOKEN present: {bool(BOT_TOKEN and BOT_TOKEN != 'YOUR_BOT_TOKEN_HERE')}")
-    print(f"ADMIN_ID: {ADMIN_ID}")
+    import sys, time
+    print(f"BOT_TOKEN present: {bool(BOT_TOKEN and BOT_TOKEN != 'YOUR_BOT_TOKEN_HERE')}", flush=True)
+    print(f"ADMIN_ID: {ADMIN_ID}", flush=True)
+    print(f"Python: {sys.version}", flush=True)
     if not BOT_TOKEN or BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
-        print("ERROR: BOT_TOKEN not set. Exiting.")
+        print("ERROR: BOT_TOKEN not set. Sleeping 60s so logs can be read...", flush=True)
+        time.sleep(60)
         return
 
     app = Application.builder().token(BOT_TOKEN).build()
