@@ -17,7 +17,7 @@ If the user uploads a zip or drops a folder that contains `prompt.txt` (and usua
 
 1. Read `prompt.txt` — it already has the filled character information.
 2. Use the images in `photos/` (or any images in the upload) as the reference photos.
-3. **Skip the questions.** Do not ask for name, height, weight, role, appearance, style, or vibe.
+3. **Skip the questions.** Do not ask for name, height, weight, appearance, style, or vibe.
 4. Go straight to generation using the content of `prompt.txt` as the prompt and the uploaded photos as references.
 
 ### Path B — No pre-filled package (manual)
@@ -42,7 +42,6 @@ Ask all of these in a single `ask_user_question` call:
 - Name of the character / person
 - Height (e.g. 182 cm / 6'0")
 - Weight (e.g. 73 kg / 161 lbs)
-- Role / stats (e.g. Versatile, Top, Bottom, Switch, etc.)
 - Appearance notes (build, skin tone, hair, beard, distinctive features)
 - Personal style (how they dress, accessories)
 - Vibe / personality (short description)
@@ -57,7 +56,7 @@ LEFT SIDEBAR (narrow vertical panel, black background):
 - Very large bold white text: "[NAME]"
 - Small yellow text underneath: "CHARACTER SHEET"
 - Status block: "ONLINE" + time + distance
-- Section titled "STATS" with three lines (role, height, weight) with small icons
+- Section titled "STATS" with two lines (height, weight) with small icons
 - Section titled "APPEARANCE" with 6–8 bullet points
 - Section titled "PERSONAL STYLE" with 3–4 bullet points
 - Section titled "VIBE" with one short paragraph
@@ -81,7 +80,6 @@ Character information:
 Name: [NAME]
 Height: [HEIGHT]
 Weight: [WEIGHT]
-Role: [ROLE]
 Appearance: [build, skin tone, hair, beard, features]
 Style: [clothing/style notes]
 Vibe: [personality/energy]

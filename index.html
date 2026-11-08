@@ -243,17 +243,7 @@ function createCharBlock(data = {}) {
     <button class="remove-char" data-id="${id}">✕ Remove</button>
     <div class="row">
       <div><label>Name</label><input class="c-name" value="${data.name||''}" placeholder="Will"></div>
-      <div><label>Role</label>
-        <select class="c-role">
-          <option value="">Select…</option>
-          <option ${data.role==='Versatile'?'selected':''}>Versatile</option>
-          <option ${data.role==='Top'?'selected':''}>Top</option>
-          <option ${data.role==='Bottom'?'selected':''}>Bottom</option>
-          <option ${data.role==='Switch'?'selected':''}>Switch</option>
-          <option ${data.role==='Vers Top'?'selected':''}>Vers Top</option>
-          <option ${data.role==='Vers Bottom'?'selected':''}>Vers Bottom</option>
-        </select>
-      </div>
+
     </div>
     <div class="row">
       <div><label>Height</label><div class="hw-row"><input class="c-height" type="number" min="140" max="220" value="${data.height||''}" placeholder="182"><select class="c-hunit"><option value="cm">cm</option><option value="ft">ft/in</option></select></div></div>
@@ -371,7 +361,7 @@ function getCharData(block) {
   if (w) weight = wu === 'kg' ? `${w} kg` : `${w} lbs`;
   return {
     name: block.querySelector('.c-name').value.trim() || 'CHARACTER',
-    role: block.querySelector('.c-role').value || '—',
+    
     height, weight,
     appearance: block.querySelector('.c-appearance').value.trim() || '—',
     style: block.querySelector('.c-style').value.trim() || '—',
@@ -403,7 +393,7 @@ LEFT SIDEBAR (narrow vertical panel, black background):
 - Very large bold white text: "${data.name}"
 - Small yellow text underneath: "CHARACTER SHEET"
 - Status block: "ONLINE" + time + distance
-- Section titled "STATS" with three lines (role, height, weight) with small icons
+- Section titled "STATS" with two lines (height, weight) with small icons
 - Section titled "APPEARANCE" with 6–8 bullet points
 - Section titled "PERSONAL STYLE" with 3–4 bullet points
 - Section titled "VIBE" with one short paragraph
@@ -439,7 +429,7 @@ Character information:
 Name: ${data.name}
 Height: ${data.height}
 Weight: ${data.weight}
-Role: ${data.role}
+
 Appearance: ${data.appearance}
 Style: ${data.style}
 Vibe: ${data.vibe}
@@ -453,7 +443,7 @@ function updatePreview() {
   const data = getCharData(blocks[0]);
   const char = characters.find(c => c.el === blocks[0]);
   document.getElementById('pName').textContent = data.name;
-  document.getElementById('pStats').textContent = `${data.role} · ${data.height} · ${data.weight}`;
+  document.getElementById('pStats').textContent = `${data.height} · ${data.weight}`;
   document.getElementById('pApp').textContent = data.appearance.slice(0, 120) + (data.appearance.length > 120 ? '…' : '');
   document.getElementById('pStyle').textContent = data.style.slice(0, 80);
   document.getElementById('pVibe').textContent = data.vibe.slice(0, 80);

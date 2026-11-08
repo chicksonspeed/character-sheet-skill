@@ -26,7 +26,7 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))  # Your Telegram user ID
 
 # Conversation states
 (
-    NAME, HEIGHT, WEIGHT, ROLE,
+    NAME, HEIGHT, WEIGHT,
     APPEARANCE, STYLE, VIBE, NOTES,
     PHOTOS, CONFIRM
 ) = range(10)
@@ -87,31 +87,13 @@ async def get_height(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def get_weight(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["weight"] = update.message.text.strip()
-    keyboard = [
-        [InlineKeyboardButton("Versatile", callback_data="role:Versatile"),
-         InlineKeyboardButton("Top", callback_data="role:Top")],
-        [InlineKeyboardButton("Bottom", callback_data="role:Bottom"),
-         InlineKeyboardButton("Switch", callback_data="role:Switch")],
-        [InlineKeyboardButton("Vers Top", callback_data="role:Vers Top"),
-         InlineKeyboardButton("Vers Bottom", callback_data="role:Vers Bottom")],
-    ]
-    await update.message.reply_text("Role?", reply_markup=InlineKeyboardMarkup(keyboard))
-    return ROLE
-
-
-async def get_role(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    query = update.callback_query
-    await query.answer()
-    context.user_data["role"] = query.data.split(":", 1)[1]
-    await query.edit_message_text(f"Role: {context.user_data['role']}")
-    await query.message.reply_text(
-        "Appearance — tap tags to add them, then press Done.\n"
-        "(You can also type extra details after.)",
+    await update.message.reply_text(
+        "Appearance — tap tags to add them, then press Done.",
         reply_markup=tag_keyboard("body", [])
     )
-    # We'll cycle through body → skin → hair → face under the appearance key
     context.user_data["appearance_stage"] = "body"
     return APPEARANCE
+
 
 
 async def appearance_tags(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -239,7 +221,7 @@ def build_prompt(data: dict) -> str:
 LEFT SIDEBAR:
 - Large bold white text: "{data.get('name', 'CHARACTER')}"
 - "CHARACTER SHEET"
-- STATS (role, height, weight)
+- STATS (height, weight)
 - APPEARANCE bullets
 - PERSONAL STYLE bullets
 - VIBE paragraph
@@ -255,7 +237,6 @@ Character information:
 Name: {data.get('name', '—')}
 Height: {data.get('height', '—')}
 Weight: {data.get('weight', '—')}
-Role: {data.get('role', '—')}
 Appearance: {data.get('appearance', '—')}
 Style: {data.get('style', '—')}
 Vibe: {data.get('vibe', '—')}
@@ -318,7 +299,6 @@ def main():
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             HEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_height)],
             WEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_weight)],
-            ROLE: [CallbackQueryHandler(get_role, pattern="^role:")],
             APPEARANCE: [CallbackQueryHandler(appearance_tags)],
             STYLE: [CallbackQueryHandler(style_tags)],
             VIBE: [CallbackQueryHandler(vibe_tags)],
