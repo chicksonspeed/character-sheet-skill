@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 
 export class RefSheetBot extends Container {
   defaultPort = 8080;
-  sleepAfter = "30m";
+  sleepAfter = "1h";
 
   // Pass Worker secrets into the container at start
   envVars = {
@@ -29,16 +29,23 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/start" || url.pathname === "/") {
-      const container = env.BOT.getByName("main");
-      await container.start();
-      return new Response("RefSheet bot container started / kept alive");
+      // fetch() (not start()) renews the sleepAfter timer on a running container
+      const res = await env.BOT.getByName("main").fetch("http://container/health");
+      return new Response(`RefSheet bot container alive (health: ${res.status})`);
     }
 
     return new Response("RefSheet bot — POST /start to wake", { status: 200 });
   },
 
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
-    const container = env.BOT.getByName("main");
-    ctx.waitUntil(container.start());
+    // start() is a no-op on a running container and does NOT renew sleepAfter,
+    // so the container used to be killed every 30m (wiping conversation state).
+    // A fetch through the container renews the activity timer.
+    ctx.waitUntil(
+      env.BOT.getByName("main")
+        .fetch("http://container/health")
+        .then((r) => console.log("keepalive", r.status))
+        .catch((e) => console.log("keepalive failed", e)),
+    );
   },
 };

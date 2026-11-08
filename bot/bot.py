@@ -167,12 +167,20 @@ async def get_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await update.message.reply_text("Something went wrong. Send /start to try again.")
         return ConversationHandler.END
 
+async def skip_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["notes"] = ""
+    logger.info("Notes skipped")
+    await update.message.reply_text("Send 1–4 photos. /done when finished.")
+    return PHOTOS
+
 async def get_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if len(context.user_data["photos"]) >= 4:
         await update.message.reply_text("Max 4. Send /done.")
         return PHOTOS
-    photo = update.message.photo[-1]
-    file = await photo.get_file()
+    if update.message.photo:
+        file = await update.message.photo[-1].get_file()
+    else:
+        file = await update.message.document.get_file()
     bio = io.BytesIO()
     await file.download_to_memory(bio)
     bio.seek(0)
@@ -220,6 +228,21 @@ async def photos_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     await update.message.reply_text("Done. /start for another.")
     return ConversationHandler.END
 
+async def lost_session(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Catches messages outside an active conversation (e.g. after a container restart)."""
+    if update.effective_message:
+        await update.effective_message.reply_text("Session expired or not started. Send /start to begin.")
+
+async def unexpected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Input that doesn't fit the current step."""
+    if update.callback_query:
+        await update.callback_query.answer("That button is no longer active.")
+    elif update.effective_message:
+        await update.effective_message.reply_text("Didn't catch that for this step. /cancel to stop, /start to restart.")
+
+async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.error("Unhandled error", exc_info=context.error)
+
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Cancelled. /start to begin.")
     return ConversationHandler.END
@@ -239,12 +262,28 @@ def run_bot():
             APPEARANCE: [CallbackQueryHandler(appearance_tags)],
             STYLE: [CallbackQueryHandler(style_tags)],
             VIBE: [CallbackQueryHandler(vibe_tags)],
-            NOTES: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_notes)],
-            PHOTOS: [MessageHandler(filters.PHOTO, get_photo), CommandHandler("done", photos_done)],
+            NOTES: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, get_notes),
+                CommandHandler("skip", skip_notes),
+            ],
+            PHOTOS: [
+                MessageHandler(filters.PHOTO | filters.Document.IMAGE, get_photo),
+                CommandHandler("done", photos_done),
+            ],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            CommandHandler("start", start),
+            MessageHandler(filters.ALL, unexpected),
+            CallbackQueryHandler(unexpected),
+        ],
+        allow_reentry=True,
     )
     app.add_handler(conv)
+    # Anything not inside a live conversation (e.g. state lost on restart)
+    app.add_handler(MessageHandler(filters.ALL, lost_session))
+    app.add_handler(CallbackQueryHandler(lost_session))
+    app.add_error_handler(on_error)
     app.run_polling()
 
 if __name__ == "__main__":
