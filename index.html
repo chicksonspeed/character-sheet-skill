@@ -3,382 +3,627 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RefSheet</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<title>RefSheet — Character Reference Sheet Builder</title>
+<meta name="description" content="Build a character reference sheet package: tags, photos and a ready-to-use prompt for Grok, Flux or Midjourney. Runs entirely in your browser.">
+<meta name="theme-color" content="#0b0b0a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230b0b0a'/%3E%3Crect x='6' y='6' width='8' height='20' fill='%23ffd400'/%3E%3Crect x='17' y='6' width='9' height='9' fill='%23f2efe6'/%3E%3Crect x='17' y='17' width='9' height='9' fill='%23f2efe6' opacity='.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
 <style>
-  :root {
-    --bg: #0c0a0d;
-    --card: #16141a;
-    --border: #2a2730;
-    --text: #f0eef5;
-    --muted: #9b97a6;
-    --accent: #e35d8c;
-    --accent2: #c6e35a;
-    --yellow: #f5d76e;
+:root {
+  --ink: #0b0b0a;
+  --panel: #121211;
+  --raise: #191917;
+  --line: #2a2926;
+  --line-2: #3a3935;
+  --paper: #f2efe6;
+  --muted: #8f8b81;
+  --dim: #5f5c55;
+  --yellow: #ffd400;
+  --yellow-ink: #1a1600;
+  --danger: #ff5a3c;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --sans: "Instrument Sans", ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+  --dock-h: 76px;
+  --ease: cubic-bezier(.2,.7,.2,1);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font: 15px/1.5 var(--sans);
+  padding-bottom: calc(var(--dock-h) + 24px);
+  min-height: 100vh;
+}
+/* film grain */
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 100;
+  opacity: .06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+::selection { background: var(--yellow); color: var(--yellow-ink); }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mono { font-family: var(--mono); }
+
+/* ---------- masthead ---------- */
+.mast {
+  max-width: 1440px; margin: 0 auto;
+  padding: 28px 32px 0;
+  display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: end;
+}
+.wordmark {
+  font: 900 clamp(56px, 8vw, 104px)/.82 var(--display);
+  letter-spacing: -.01em; text-transform: uppercase; margin: 0;
+}
+.wordmark em { font-style: normal; color: var(--yellow); }
+.mast-meta {
+  justify-self: end; text-align: right;
+  font: 500 11px/1.7 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.mast-meta b { color: var(--paper); font-weight: 500; }
+.rule { max-width: 1440px; margin: 18px auto 0; padding: 0 32px; }
+.rule div { border-top: 2px solid var(--paper); position: relative; }
+.rule div::after { content: ""; position: absolute; left: 0; right: 0; top: 4px; border-top: 1px solid var(--line-2); }
+
+/* ---------- character tabs ---------- */
+.tabs {
+  max-width: 1440px; margin: 0 auto; padding: 18px 32px 0;
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+}
+.tab {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: transparent; border: 1px solid var(--line-2); border-radius: 2px;
+  padding: 7px 8px 7px 12px; font: 500 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); transition: border-color .15s, color .15s, background .15s;
+}
+.tab:hover { color: var(--paper); border-color: var(--muted); }
+.tab[aria-selected="true"] { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.tab .n { opacity: .55; }
+.tab .x {
+  width: 18px; height: 18px; display: grid; place-items: center; border-radius: 2px;
+  font-size: 14px; line-height: 1; opacity: .6;
+}
+.tab .x:hover { opacity: 1; background: rgba(0,0,0,.12); }
+.tab.add { border-style: dashed; padding-right: 12px; }
+
+/* ---------- layout ---------- */
+.layout {
+  max-width: 1440px; margin: 0 auto; padding: 8px 32px 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 600px); gap: 48px; align-items: start;
+}
+.proof-col { position: sticky; top: 20px; padding-top: 26px; }
+
+/* ---------- sections ---------- */
+.sec {
+  display: grid; grid-template-columns: 64px minmax(0,1fr); gap: 0 18px;
+  padding: 30px 0 32px; border-bottom: 1px solid var(--line);
+  animation: rise .6s var(--ease) both; animation-delay: calc(var(--i, 0) * 60ms);
+}
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+.sec-num { font: 800 44px/.8 var(--display); color: var(--line-2); padding-top: 2px; transition: color .3s; }
+.sec.done .sec-num { color: var(--yellow); }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.sec-title { font: 800 26px/1 var(--display); text-transform: uppercase; letter-spacing: .01em; margin: 0; }
+.sec-hint { font: 400 12px/1.4 var(--mono); color: var(--muted); }
+
+/* fields */
+.field label, .flabel {
+  display: block; margin-bottom: 6px;
+  font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+}
+.input, .textarea {
+  width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 2px;
+  padding: 11px 12px; font-size: 15px; transition: border-color .15s, background .15s;
+}
+.input::placeholder, .textarea::placeholder { color: var(--dim); }
+.input:hover, .textarea:hover { border-color: var(--line-2); }
+.input:focus, .textarea:focus { outline: none; border-color: var(--yellow); background: var(--raise); }
+.input.big { font: 800 34px/1 var(--display); text-transform: uppercase; letter-spacing: .01em; padding: 12px 14px 10px; }
+.textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
+.grid-3 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; margin-top: 14px; }
+.unit-row { display: flex; gap: 6px; }
+.unit-row .input { min-width: 0; }
+.input.num { font-family: var(--mono); }
+.input::-webkit-outer-spin-button, .input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.input[type=number] { -moz-appearance: textfield; }
+
+/* segmented */
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 2px; padding: 2px; gap: 2px; flex-shrink: 0; }
+.seg button {
+  background: transparent; border: 0; border-radius: 1px; padding: 7px 10px;
+  font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.seg button:hover { color: var(--paper); }
+.seg button[aria-pressed="true"] { background: var(--paper); color: var(--ink); }
+.seg.wide { display: flex; }
+.seg.wide button { flex: 1; padding: 10px 8px; }
+
+/* tag groups */
+.group + .group { margin-top: 22px; }
+.group-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 9px; }
+.group-name { font: 600 13px/1 var(--sans); letter-spacing: .01em; }
+.group-count { font: 500 11px/1 var(--mono); color: var(--yellow); letter-spacing: .06em; }
+.group-count:empty { display: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; position: relative; }
+.chips.clamped { max-height: 104px; overflow: hidden; }
+.chips.clamped::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 36px;
+  background: linear-gradient(transparent, var(--ink)); pointer-events: none;
+}
+.chip {
+  border: 1px solid var(--line-2); background: transparent; border-radius: 999px;
+  padding: 6px 12px; font-size: 13.5px; line-height: 1.2; color: #d9d5ca;
+  transition: background .12s, border-color .12s, color .12s, transform .12s var(--ease);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.chip:hover { border-color: var(--muted); color: var(--paper); }
+.chip:active { transform: scale(.96); }
+.chip[aria-pressed="true"] { background: var(--yellow); border-color: var(--yellow); color: var(--yellow-ink); font-weight: 500; }
+.chip.custom { border-style: dashed; }
+.chip.custom[aria-pressed="true"] { border-style: solid; }
+.chip .del { opacity: .55; font-size: 15px; line-height: 1; margin-right: -4px; padding: 0 2px; }
+.chip .del:hover { opacity: 1; }
+.chip-add {
+  border: 1px dashed var(--line-2); background: transparent; border-radius: 999px;
+  padding: 6px 12px; font-size: 13.5px; line-height: 1.2; width: 150px; color: var(--paper);
+}
+.chip-add::placeholder { color: var(--muted); }
+.chip-add:focus { outline: none; border-color: var(--yellow); border-style: solid; width: 220px; }
+.more {
+  margin-top: 8px; background: none; border: 0; padding: 4px 0;
+  font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.more:hover { color: var(--yellow); }
+
+/* photos */
+.drop {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+}
+.slot {
+  position: relative; aspect-ratio: 3/4; border: 1px dashed var(--line-2); border-radius: 2px;
+  background: var(--panel); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;
+  padding: 10px; text-align: left; transition: border-color .15s, background .15s;
+}
+.slot:hover, .drop.over .slot:not(.filled) { border-color: var(--yellow); background: var(--raise); }
+.slot .num { font: 800 28px/.8 var(--display); color: var(--line-2); }
+.slot .lbl { font: 500 10.5px/1.35 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.slot .plus { position: absolute; inset: 0; display: grid; place-items: center; font: 300 34px/1 var(--sans); color: var(--line-2); pointer-events: none; }
+.slot.filled { border-style: solid; border-color: var(--line); padding: 0; }
+.slot img { width: 100%; height: 100%; object-fit: cover; display: block; animation: fade .35s ease both; }
+@keyframes fade { from { opacity: 0; } }
+.slot .tagline {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 8px 6px;
+  background: linear-gradient(transparent, rgba(0,0,0,.8));
+  font: 600 10.5px/1 var(--mono); letter-spacing: .08em; color: #fff; text-transform: uppercase;
+}
+.slot .rm {
+  position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 2px;
+  border: 0; background: rgba(11,11,10,.75); color: #fff; font-size: 16px; line-height: 1; display: grid; place-items: center;
+}
+.slot .rm:hover { background: var(--danger); }
+.drop-note { margin: 10px 0 0; font: 400 12px/1.5 var(--mono); color: var(--muted); }
+.drop-note b { color: var(--paper); font-weight: 500; }
+
+/* output */
+.out-grid { display: grid; gap: 16px; }
+.out-row { display: grid; grid-template-columns: 140px minmax(0,1fr); gap: 14px; align-items: center; }
+.toggles { display: grid; gap: 10px; margin-top: 4px; }
+.toggle { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 14px; color: #d9d5ca; }
+.toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.toggle .sw {
+  width: 34px; height: 20px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--panel);
+  position: relative; flex-shrink: 0; transition: background .15s, border-color .15s;
+}
+.toggle .sw::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--muted); transition: transform .2s var(--ease), background .15s;
+}
+.toggle input:checked + .sw { background: var(--yellow); border-color: var(--yellow); }
+.toggle input:checked + .sw::after { transform: translateX(14px); background: var(--yellow-ink); }
+.toggle input:focus-visible + .sw { outline: 2px solid var(--yellow); outline-offset: 2px; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line-2); border-radius: 2px; }
+.stepper button { width: 34px; height: 32px; background: none; border: 0; font-size: 16px; color: var(--muted); }
+.stepper button:hover:not(:disabled) { color: var(--yellow); }
+.stepper button:disabled { opacity: .3; cursor: default; }
+.stepper output { min-width: 28px; text-align: center; font: 500 14px/1 var(--mono); }
+
+/* ---------- proof (live sheet) ---------- */
+.proof-bar {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+  font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+}
+.proof-bar .views { display: flex; gap: 4px; }
+.proof-bar .views button {
+  background: none; border: 0; padding: 4px 2px; margin-left: 10px;
+  font: inherit; letter-spacing: inherit; color: var(--muted); border-bottom: 1px solid transparent;
+}
+.proof-bar .views button[aria-selected="true"] { color: var(--paper); border-bottom-color: var(--yellow); }
+.live-dot { display: inline-block; width: 6px; height: 6px; background: var(--yellow); border-radius: 50%; margin-right: 8px; vertical-align: 1px; animation: blink 2.4s infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+
+.frame { position: relative; padding: 14px; }
+/* crop marks */
+.frame::before, .frame::after, .frame > .cm::before, .frame > .cm::after {
+  content: ""; position: absolute; width: 14px; height: 14px; border: 0 solid var(--muted);
+}
+.frame::before { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
+.frame::after { top: 0; right: 0; border-top-width: 1px; border-right-width: 1px; }
+.frame > .cm::before { bottom: 0; left: 0; border-bottom-width: 1px; border-left-width: 1px; }
+.frame > .cm::after { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
+.caption { margin-top: 10px; display: flex; justify-content: space-between; font: 400 10.5px/1.4 var(--mono); color: var(--dim); letter-spacing: .06em; text-transform: uppercase; }
+
+.sheet {
+  --s-bg: #000; --s-fg: #fff; --s-dim: rgba(255,255,255,.55); --s-acc: #ffd400; --s-line: rgba(255,255,255,.14);
+  --s-turn: #fff; --s-fig: #161616; --s-ph: #141414;
+  container-type: inline-size;
+  background: var(--s-bg); color: var(--s-fg);
+  aspect-ratio: 16 / 10; width: 100%;
+  box-shadow: 0 30px 60px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.06);
+  transition: background .3s, color .3s;
+  overflow: hidden;
+}
+.sg {
+  height: 100%;
+  display: grid; grid-template-columns: 27% 1fr 18%; grid-template-rows: 44% 1fr;
+  grid-template-areas: "side photos details" "side turn details";
+  gap: 1.6cqi; padding: 2.2cqi;
+}
+.sheet.fmt-white {
+  --s-bg: #f7f6f2; --s-fg: #111; --s-dim: rgba(0,0,0,.5); --s-acc: #111; --s-line: rgba(0,0,0,.12);
+  --s-turn: #ecebe6; --s-fig: #2a2a2a; --s-ph: #e4e2dc;
+}
+.sheet.fmt-story { aspect-ratio: 9 / 16; max-width: 360px; margin: 0 auto; }
+.sheet.fmt-story .sg {
+  grid-template-columns: 1fr; grid-template-rows: auto 26% auto 24% minmax(0, 1fr);
+  grid-template-areas: "side" "photos" "stats" "turn" "details";
+  gap: 3.4cqi; padding: 6cqi;
+}
+.s-side { grid-area: side; display: flex; flex-direction: column; gap: 1.1cqi; min-width: 0; overflow: hidden; }
+.s-name { font: 900 6.4cqi/.86 var(--display); text-transform: uppercase; letter-spacing: -.005em; word-break: break-word; }
+.s-name.ph { color: var(--s-line); }
+.s-kicker { font: 700 1.5cqi/1 var(--mono); color: var(--s-acc); letter-spacing: .14em; margin-top: .6cqi; }
+.s-status { display: flex; align-items: center; gap: .8cqi; font: 500 1.25cqi/1 var(--mono); color: var(--s-dim); letter-spacing: .08em; }
+.s-status i { width: .9cqi; height: .9cqi; border-radius: 50%; background: #3ddc84; display: inline-block; }
+.s-h { font: 700 1.35cqi/1 var(--mono); letter-spacing: .14em; color: var(--s-acc); margin: 0 0 .6cqi; }
+.s-block { border-top: 1px solid var(--s-line); padding-top: .8cqi; }
+.s-list.cols { columns: 2; column-gap: 1cqi; }
+.s-list li { break-inside: avoid; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-stats { display: grid; gap: .3cqi; font: 600 1.6cqi/1.25 var(--sans); }
+.s-list { margin: 0; padding: 0; list-style: none; font: 400 1.3cqi/1.32 var(--sans); }
+.s-list li::before { content: "— "; color: var(--s-dim); }
+.s-text { font: 400 1.4cqi/1.4 var(--sans); color: var(--s-fg); }
+.s-empty { color: var(--s-dim); font-style: italic; }
+.s-pal { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8cqi; }
+.s-sw { display: grid; gap: .4cqi; font: 500 1cqi/1 var(--mono); color: var(--s-dim); letter-spacing: .06em; text-transform: uppercase; }
+.s-sw span {
+  aspect-ratio: 1; border-radius: .4cqi; border: 1px solid var(--s-line);
+  background: repeating-linear-gradient(45deg, transparent 0 3px, var(--s-line) 3px 4px);
+  transition: background .4s;
+}
+.s-photos { grid-area: photos; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2cqi; min-height: 0; }
+.s-ph { position: relative; background: var(--s-ph); overflow: hidden; border-radius: .3cqi; min-height: 0; }
+.s-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.s-ph b { position: absolute; left: .8cqi; top: .6cqi; font: 800 2.4cqi/1 var(--display); color: var(--s-acc); text-shadow: 0 0 6px rgba(0,0,0,.4); }
+.s-turn { grid-area: turn; background: var(--s-turn); border-radius: .3cqi; display: grid; grid-template-columns: repeat(4, 1fr); padding: 1.4cqi 1cqi 1cqi; min-height: 0; }
+.s-fig { display: grid; grid-template-rows: 1fr auto; justify-items: center; gap: .6cqi; min-height: 0; }
+.s-fig svg { height: 100%; width: auto; fill: var(--s-fig); min-height: 0; }
+.s-fig span { font: 700 1.05cqi/1 var(--mono); letter-spacing: .12em; color: #555; }
+.sheet.fmt-classic .s-fig span { color: #333; }
+.s-details { grid-area: details; display: flex; flex-direction: column; gap: 1.2cqi; min-height: 0; overflow: hidden; }
+.s-crops { display: grid; grid-template-rows: repeat(3, 1fr); gap: .8cqi; flex: 0 0 52%; min-height: 0; }
+.s-crop { background: var(--s-ph); border-radius: .3cqi; overflow: hidden; min-height: 0; }
+.s-crop img { width: 100%; height: 100%; object-fit: cover; transform: scale(2.2); display: block; }
+.s-stats-story { display: none; }
+.sheet.fmt-story .s-stats-story { display: block; grid-area: stats; }
+.sheet.fmt-story .s-side .hide-story { display: none; }
+.sheet.fmt-story .s-name { font-size: 14cqi; }
+.sheet.fmt-story .s-kicker { font-size: 3cqi; }
+.sheet.fmt-story .s-h { font-size: 2.6cqi; }
+.sheet.fmt-story .s-stats, .sheet.fmt-story .s-text { font-size: 3.2cqi; }
+.sheet.fmt-story .s-photos { grid-template-columns: repeat(3, 1fr); }
+.sheet.fmt-story .s-ph b { font-size: 5cqi; }
+.sheet.fmt-story .s-fig span { font-size: 2cqi; }
+.sheet.fmt-story .s-crops { display: none; }
+.sheet.fmt-story .s-details .s-text { font-size: 3cqi; }
+.sheet.fmt-story .s-status { font-size: 2.4cqi; }
+.sheet.fmt-story .s-status i { width: 1.8cqi; height: 1.8cqi; }
+.sheet.blank .s-name, .sheet.blank .s-text, .sheet.blank .s-list, .sheet.blank .s-stats, .sheet.blank .s-kicker, .sheet.blank .s-h, .sheet.blank .s-status {
+  color: transparent !important; background: var(--s-line); border-radius: .3cqi; text-shadow: none;
+}
+.sheet.blank .s-list li::before { color: transparent; }
+
+.promptbox {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 2px;
+  font: 400 12px/1.6 var(--mono); color: #cfcbbf; padding: 16px; margin: 0;
+  max-height: 62vh; overflow: auto; white-space: pre-wrap; word-break: break-word;
+}
+.proof-tools { display: flex; gap: 8px; margin-top: 12px; }
+
+/* ---------- dock ---------- */
+.dock {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  background: rgba(11,11,10,.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.dock-in {
+  max-width: 1440px; margin: 0 auto; padding: 0 32px; min-height: var(--dock-h);
+  display: flex; align-items: center; gap: 16px;
+}
+.readiness { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; }
+.meter { display: flex; gap: 3px; }
+.meter i { width: 18px; height: 4px; background: var(--line-2); transition: background .3s; }
+.meter i.on { background: var(--yellow); }
+.ready-txt { font: 500 11px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ready-txt b { color: var(--paper); font-weight: 500; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 2px; border: 1px solid var(--line-2); background: transparent; color: var(--paper);
+  padding: 0 16px; height: 44px; white-space: nowrap; text-decoration: none;
+  font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+  transition: background .15s, border-color .15s, color .15s, transform .1s;
+}
+.btn:hover { border-color: var(--paper); }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--yellow); border-color: var(--yellow); color: var(--yellow-ink); padding: 0 22px; }
+.btn.primary:hover { background: #ffe04a; }
+.btn:disabled { opacity: .5; cursor: progress; }
+.btn.sm { height: 34px; padding: 0 12px; font-size: 11px; }
+.btn svg { width: 15px; height: 15px; }
+.btn.only-mobile { display: none; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(var(--dock-h) + 18px + env(safe-area-inset-bottom)); z-index: 60;
+  transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
+  background: var(--paper); color: var(--ink); padding: 11px 16px; border-radius: 2px;
+  font: 500 12.5px/1.3 var(--mono); letter-spacing: .02em; max-width: calc(100vw - 32px);
+  transition: opacity .2s, transform .25s var(--ease);
+  box-shadow: 0 10px 30px rgba(0,0,0,.5);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.err { background: var(--danger); color: #fff; }
+
+footer.colophon {
+  max-width: 1440px; margin: 40px auto 0; padding: 0 32px;
+  font: 400 11px/1.6 var(--mono); color: var(--dim); letter-spacing: .04em;
+  display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+}
+footer.colophon a { color: var(--muted); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1080px) {
+  .layout { grid-template-columns: 1fr; }
+  .proof-col {
+    position: fixed; inset: 0; z-index: 70; background: rgba(11,11,10,.97); overflow: auto;
+    padding: 20px 16px 120px; display: none;
   }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.5;
-  }
-  .wrap {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 32px 20px 80px;
-    display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: 28px;
-  }
-  @media (max-width: 900px) {
-    .wrap { grid-template-columns: 1fr; }
-  }
-  h1 { font-size: 2.2rem; margin: 0 0 6px; letter-spacing: -0.03em; }
-  .subtitle { color: var(--muted); margin: 0 0 24px; }
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
-  }
-  label {
-    display: block;
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin: 12px 0 5px;
-    color: var(--yellow);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  input, textarea, select {
-    width: 100%;
-    background: #0e0c10;
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 0.95rem;
-    font-family: inherit;
-  }
-  textarea { min-height: 60px; resize: vertical; }
-  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
-  .hw-row { display: grid; grid-template-columns: 1fr 80px; gap: 6px; }
-  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
-  .tag {
-    background: #0e0c10;
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 999px;
-    padding: 5px 10px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    user-select: none;
-  }
-  .tag:hover, .tag.active { border-color: var(--accent); background: rgba(227, 93, 140, 0.12); }
-  .sublabel { font-size: 0.72rem; color: var(--muted); margin: 8px 0 2px; }
-  .photos { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
-  .photo-slot {
-    width: 88px;
-    height: 88px;
-    border: 2px dashed var(--border);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    overflow: hidden;
-    background: #0e0c10;
-    position: relative;
-  }
-  .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
-  .photo-slot span { font-size: 0.7rem; color: var(--muted); text-align: center; padding: 6px; }
-  .badge {
-    position: absolute;
-    bottom: 4px;
-    left: 4px;
-    right: 4px;
-    background: rgba(0,0,0,0.7);
-    color: white;
-    font-size: 0.65rem;
-    text-align: center;
-    border-radius: 4px;
-    padding: 2px 0;
-  }
-  button {
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    padding: 12px 18px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    width: 100%;
-    margin-top: 8px;
-  }
-  button:hover { filter: brightness(1.1); }
-  button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-row { display: flex; gap: 8px; }
-  .btn-row button { flex: 1; }
-  .note { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
-  .success { color: var(--accent2); font-weight: 600; margin-top: 10px; font-size: 0.9rem; }
-  .preview {
-    background: #111;
-    border-radius: 12px;
-    padding: 12px;
-    font-size: 0.75rem;
-    min-height: 420px;
-  }
-  .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .swatches { display: flex; gap: 4px; }
-  .swatch { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #333; }
-  .preview-name { font-size: 1.4rem; font-weight: 700; }
-  .preview-sub { color: var(--yellow); font-size: 0.7rem; }
-  .preview-section { margin: 8px 0; }
-  .preview-section strong { color: var(--yellow); }
-  .palette-row { display: flex; gap: 6px; margin-top: 4px; }
-  .palette-swatch { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #333; }
-  .char-block { border: 1px dashed var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
-  .remove-char { float: right; background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; }
+  body.show-proof .proof-col { display: block; animation: fade .2s; }
+  body.show-proof { overflow: hidden; }
+  .proof-close { display: inline-flex !important; }
+  .btn.only-mobile { display: inline-flex; }
+}
+@media (max-width: 720px) {
+  :root { --dock-h: 128px; }
+  .mast, .tabs, .layout, .rule, footer.colophon { padding-left: 16px; padding-right: 16px; }
+  .mast { grid-template-columns: 1fr; gap: 10px; }
+  .mast-meta { justify-self: start; text-align: left; }
+  .sec { grid-template-columns: 1fr; padding: 24px 0 26px; }
+  .sec-num { font-size: 28px; margin-bottom: 6px; }
+  .sec-head { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .drop { grid-template-columns: repeat(2, 1fr); }
+  .out-row { grid-template-columns: 1fr; gap: 8px; }
+  .dock-in { flex-wrap: wrap; padding: 10px 16px; gap: 8px; }
+  .readiness { flex-basis: 100%; }
+  .dock .btn { flex: 1; padding: 0 10px; }
+  .dock .btn.hide-sm { display: none; }
+  .chip-add:focus { width: 100%; }
+}
+.proof-close { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div>
-    <h1>RefSheet</h1>
-    <p class="subtitle">Fill details, upload photos, download a ready-to-use zip. Live preview on the right.</p>
 
-    <div id="characters"></div>
-
-    <div class="card">
-      <button class="secondary" id="addChar">+ Add another character (batch)</button>
+<header>
+  <div class="mast">
+    <h1 class="wordmark">Ref<em>/</em>Sheet</h1>
+    <div class="mast-meta">
+      <div><b>Character reference sheet builder</b></div>
+      <div>Tags · Photos · Prompt → Zip</div>
+      <div>Runs in your browser — nothing is uploaded</div>
     </div>
-
-    <div class="card">
-      <label>Format</label>
-      <select id="format">
-        <option value="classic">Classic Black</option>
-        <option value="white">Clean White</option>
-        <option value="story">Story (9:16)</option>
-      </select>
-      <label>Reference Strength</label>
-      <select id="strength">
-        <option value="strict">Strict likeness</option>
-        <option value="balanced" selected>Balanced</option>
-        <option value="loose">Loose / stylized</option>
-      </select>
-      <label>Variations</label>
-      <select id="variations">
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-      </select>
-      <label style="margin-top:14px;">
-        <input type="checkbox" id="blankText" style="width:auto; margin-right:8px;"> Blank text areas (for clean overlay later)
-      </label>
-      <label>
-        <input type="checkbox" id="turnaroundOnly" style="width:auto; margin-right:8px;"> Also include turnaround-only prompt
-      </label>
-    </div>
-
-    <div class="btn-row">
-      <button id="generate">Download Zip</button>
-      <button class="secondary" id="openGrok">Copy for Grok</button>
-    </div>
-    <button class="secondary" id="sendToBuilder" style="margin-top:8px;">Send package to builder</button>
-    <p class="note" style="text-align:center;">For people without Grok — sends prompt + photos so the sheet can be made for you.</p>
-    <div class="btn-row">
-      <button class="secondary" id="save">Save Profile</button>
-      <button class="secondary" id="load">Load Last</button>
-    </div>
-    <div id="status" class="success"></div>
   </div>
+  <div class="rule"><div></div></div>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Characters"></nav>
+</header>
 
-  <div>
-    <div class="card">
-      <div class="preview-header">
-        <strong>Live Preview</strong>
-        <div class="swatches" id="previewSwatches"></div>
-      </div>
-      <div class="preview" id="preview">
-        <div class="preview-name" id="pName">NAME</div>
-        <div class="preview-sub">CHARACTER SHEET</div>
-        <div class="preview-section"><strong>STATS</strong><br><span id="pStats">—</span></div>
-        <div class="preview-section"><strong>APPEARANCE</strong><br><span id="pApp">—</span></div>
-        <div class="preview-section"><strong>STYLE</strong><br><span id="pStyle">—</span></div>
-        <div class="preview-section"><strong>VIBE</strong><br><span id="pVibe">—</span></div>
-        <div class="preview-section"><strong>PALETTE</strong>
-          <div class="palette-row" id="pPalette"></div>
-        </div>
+<main class="layout">
+  <div id="form"></div>
+
+  <aside class="proof-col" id="proofCol" aria-label="Live sheet preview">
+    <div class="proof-bar">
+      <span><span class="live-dot"></span><span id="proofLabel">Fig. 01 — Live proof</span></span>
+      <span class="views" role="tablist">
+        <button role="tab" aria-selected="true" data-view="sheet">Sheet</button>
+        <button role="tab" aria-selected="false" data-view="prompt">Prompt</button>
+        <button class="proof-close btn sm" id="proofClose" type="button" style="margin-left:14px">Close ✕</button>
+      </span>
+    </div>
+    <div id="viewSheet">
+      <div class="frame"><span class="cm"></span><div class="sheet fmt-classic" id="sheet"></div></div>
+      <div class="caption"><span id="capLeft">Classic black · 16:10</span><span id="capRight">Layout matches prompt.txt</span></div>
+    </div>
+    <div id="viewPrompt" hidden>
+      <pre class="promptbox" id="promptbox"></pre>
+      <div class="proof-tools">
+        <button class="btn sm" id="copyPrompt2" type="button">Copy prompt</button>
       </div>
     </div>
+  </aside>
+</main>
+
+<footer class="colophon">
+  <span>RefSheet — prompt package for Grok, Flux, Midjourney &amp; co.</span>
+  <span>Drafts autosave on this device · photos are never stored or sent</span>
+</footer>
+
+<div class="dock">
+  <div class="dock-in">
+    <div class="readiness">
+      <div class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="ready-txt" id="readyTxt" aria-live="polite"></div>
+    </div>
+    <button class="btn only-mobile" id="openProof" type="button">View sheet</button>
+    <a class="btn hide-sm" id="builderBtn" target="_blank" rel="noopener" hidden>Have it made ↗</a>
+    <button class="btn hide-sm" id="shareBtn" type="button" hidden>Share zip</button>
+    <button class="btn" id="copyBtn" type="button">Copy &amp; open Grok</button>
+    <button class="btn primary" id="zipBtn" type="button">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M2.5 13.5h11"/></svg>
+      Download zip
+    </button>
   </div>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
+(() => {
+'use strict';
+
+/* ======================================================================
+   Config
+   ====================================================================== */
+// Telegram bot link for "Have it made" — button is hidden while empty.
+const BUILDER_URL = 'https://t.me/Refsheet_bot';
+const GROK_URL = 'https://grok.com';
+const STORE_KEY = 'refsheet:v2';
+const LEGACY_KEY = 'cs-profiles';
+const MAX_PHOTOS = 4;
+const MAX_CUSTOM = 10;
+const CLAMP_AT = 16;
+
+// Same categories and tags as the Telegram bot (bot/bot.py → TAG_OPTIONS).
+const GROUPS = [
+  { key: 'body',     label: 'Body type',              section: 'appearance' },
+  { key: 'skin',     label: 'Skin',                   section: 'appearance' },
+  { key: 'hair',     label: 'Hair',                   section: 'appearance' },
+  { key: 'eyes',     label: 'Eyes',                   section: 'appearance' },
+  { key: 'face',     label: 'Face & facial hair',     section: 'appearance' },
+  { key: 'style',    label: 'Look',                   section: 'style' },
+  { key: 'wardrobe', label: 'Wardrobe & accessories', section: 'style' },
+  { key: 'vibe',     label: 'Vibe',                   section: 'vibe' },
+];
 const TAGS = {
   body: ["athletic","lean muscular","muscular","slim","stocky","toned","broad shoulders","narrow waist","defined abs","thick thighs","long legs","compact","tall frame","short frame","v-taper","soft","cut","bulk","swimmer build","runner build"],
   skin: ["medium tan","fair skin","olive skin","dark skin","light skin","sun-kissed","pale","freckles","warm undertone","cool undertone","neutral undertone","golden","porcelain","deep","medium","light medium","tattoos","birthmark","scar"],
   hair: ["short hair","textured hair","messy hair","styled hair","undercut","buzzed","long hair","curly hair","wavy hair","straight hair","slicked back","pink hair","blond hair","dark hair","brown hair","black hair","dyed hair","bleached hair","silver hair","red hair","blue hair","platinum","ash blond","crew cut","fade","man bun","middle part","side part","mullet","braids","dreadlocks","ponytail","bald"],
-  face: ["brown eyes","blue eyes","green eyes","hazel eyes","dark eyes","light eyes","grey eyes","amber eyes","beard","full beard","stubble","clean shaven","mustache","goatee","trimmed beard","strong jawline","soft features","sharp features","high cheekbones","full lips","defined brows","thick brows","confident presence","relaxed presence","intense gaze","friendly face","smirk","serious expression","boyish face","mature face","hooded eyes","almond eyes","glasses","eyeliner","dimples","nose piercing","lip piercing","eyebrow slit"],
-  style: ["edgy","confident","stylish","casual","refined","laid-back","streetwear","minimal","summer casual","clean lines","accessories","layered","monochrome","bold colors","neutral tones","oversized","fitted","athleisure","smart casual","nightlife","daytime casual","workwear","preppy","grunge","techwear","chain necklace","sunglasses","hoodie","leather jacket","denim","tank top","button-up","t-shirt","jewelry","rings","earring","bracelet","cap","beanie","boots","sneakers","loafers","silver jewelry","gold jewelry","cross necklace","choker","watch","bag","backpack","y2k","old money","gorpcore","punk","skater","bomber jacket","cargo pants","suit","turtleneck","tracksuit","bucket hat"],
-  vibe: ["cool","versatile","approachable","mysterious","playful","intense","chill","confident","flirty","aloof","warm","magnetic","charismatic","calm","energetic","laid-back","bold","subtle","teasing","serious","friendly","distant","inviting","guarded","night owl","party energy","low-key","high-energy","smooth","rough around the edges","sweet","dominant","submissive energy","bratty","soft","stoic","expressive","shy","outgoing","dry humor","chaotic","grounded","dreamy"]
+  eyes: ["brown eyes","blue eyes","green eyes","hazel eyes","dark eyes","light eyes","grey eyes","amber eyes","hooded eyes","almond eyes","glasses","eyeliner"],
+  face: ["beard","full beard","stubble","clean shaven","mustache","goatee","trimmed beard","strong jawline","soft features","sharp features","high cheekbones","full lips","defined brows","thick brows","intense gaze","friendly face","smirk","serious expression","boyish face","mature face","dimples","nose piercing","lip piercing","eyebrow slit"],
+  style: ["edgy","confident","stylish","casual","refined","laid-back","streetwear","minimal","summer casual","clean lines","layered","monochrome","bold colors","neutral tones","oversized","fitted","athleisure","smart casual","nightlife","daytime casual","workwear","preppy","grunge","techwear","y2k","old money","gorpcore","punk","skater"],
+  wardrobe: ["chain necklace","sunglasses","hoodie","leather jacket","denim","tank top","button-up","t-shirt","jewelry","rings","earring","bracelet","cap","beanie","boots","sneakers","loafers","silver jewelry","gold jewelry","cross necklace","choker","watch","bag","backpack","bomber jacket","cargo pants","suit","turtleneck","tracksuit","bucket hat"],
+  vibe: ["cool","versatile","approachable","mysterious","playful","intense","chill","confident","flirty","aloof","warm","magnetic","charismatic","calm","energetic","laid-back","bold","subtle","teasing","serious","friendly","distant","inviting","guarded","night owl","party energy","low-key","high-energy","smooth","rough around the edges","sweet","dominant","submissive energy","bratty","soft","stoic","expressive","shy","outgoing","dry humor","chaotic","grounded","dreamy"],
 };
+const SLOT_HINTS = ['Face close-up', 'Full body', 'Outfit / style', 'Extra angle'];
+const FORMATS = { classic: 'Classic black · 16:10', white: 'Clean white · 16:10', story: 'Story · 9:16' };
 
-let characters = [];
-let charId = 0;
+/* ======================================================================
+   State
+   ====================================================================== */
+let uid = 0;
+const newChar = (data = {}) => ({
+  id: ++uid,
+  name: data.name || '',
+  hUnit: data.hUnit || 'cm', cm: data.cm || '', ft: data.ft || '', inch: data.inch || '',
+  wUnit: data.wUnit || 'kg', weight: data.weight || '',
+  sel: Object.fromEntries(GROUPS.map(g => [g.key, [...(data.sel?.[g.key] || [])]])),
+  custom: Object.fromEntries(GROUPS.map(g => [g.key, [...(data.custom?.[g.key] || [])]])),
+  notes: data.notes || '',
+  photos: Array(MAX_PHOTOS).fill(null),   // { file, url, ext } — never persisted
+  colors: [],
+  expanded: {},
+});
+const state = {
+  chars: [],
+  active: 0,
+  out: { format: 'classic', strength: 'balanced', variations: 1, blank: false, turnaround: false },
+  view: 'sheet',
+};
+const cur = () => state.chars[state.active];
 
-function esc(v) {
-  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-function createCharBlock(data = {}) {
-  const id = charId++;
-  const div = document.createElement('div');
-  div.className = 'char-block card';
-  div.dataset.id = id;
-  div.innerHTML = `
-    <button class="remove-char" data-id="${id}">✕ Remove</button>
-    <div class="row">
-      <div><label>Name</label><input class="c-name" value="${esc(data.name)}" placeholder="Will"></div>
-
-    </div>
-    <div class="row">
-      <div><label>Height</label><div class="hw-row"><input class="c-height" type="number" min="140" max="220" value="${esc(data.height)}" placeholder="182"><select class="c-hunit"><option value="cm">cm</option><option value="ft">ft/in</option></select></div></div>
-      <div><label>Weight</label><div class="hw-row"><input class="c-weight" type="number" min="40" max="200" value="${esc(data.weight)}" placeholder="73"><select class="c-wunit"><option value="kg">kg</option><option value="lbs">lbs</option></select></div></div>
-    </div>
-    <label>Appearance</label>
-    <div class="sublabel">Body Type</div><div class="tags" data-group="body"></div>
-    <div class="sublabel">Skin</div><div class="tags" data-group="skin"></div>
-    <div class="sublabel">Hair</div><div class="tags" data-group="hair"></div>
-    <div class="sublabel">Eyes & Face</div><div class="tags" data-group="face"></div>
-    <textarea class="c-appearance" placeholder="Click tags or type…">${esc(data.appearance)}</textarea>
-    <label>Personal Style</label>
-    <div class="tags" data-group="style"></div>
-    <textarea class="c-style" placeholder="Click tags or type…">${esc(data.style)}</textarea>
-    <label>Vibe</label>
-    <div class="tags" data-group="vibe"></div>
-    <textarea class="c-vibe" placeholder="Click tags or type…">${esc(data.vibe)}</textarea>
-    <label>Extra Notes</label>
-    <textarea class="c-notes" placeholder="Notes…">${esc(data.notes)}</textarea>
-    <label>Reference Photos</label>
-    <p class="note">1–4 clear photos. Face close-up recommended.</p>
-    <div class="photos"></div>
-    <input type="file" class="file-input" accept="image/*" hidden>
-  `;
-  document.getElementById('characters').appendChild(div);
-  setupTags(div);
-  setupPhotos(div);
-  div.querySelector('.remove-char').onclick = () => { div.remove(); updatePreview(); };
-  div.querySelectorAll('input,textarea,select').forEach(el => el.addEventListener('input', updatePreview));
-  characters.push({ id, el: div, photos: [null,null,null,null], files: [null,null,null,null], colors: [] });
-  updatePreview();
-  return div;
-}
-
-function setupTags(block) {
-  block.querySelectorAll('.tags').forEach(container => {
-    const group = container.dataset.group;
-    const textarea = block.querySelector(group === 'style' ? '.c-style' : group === 'vibe' ? '.c-vibe' : '.c-appearance');
-    TAGS[group].forEach(word => {
-      const el = document.createElement('span');
-      el.className = 'tag';
-      el.textContent = word;
-      el.onclick = () => {
-        const parts = textarea.value.split(/,\s*/).filter(Boolean);
-        if (parts.includes(word)) {
-          textarea.value = parts.filter(p => p !== word).join(', ');
-          el.classList.remove('active');
-        } else {
-          parts.push(word);
-          textarea.value = parts.join(', ');
-          el.classList.add('active');
-        }
-        updatePreview();
-      };
-      container.appendChild(el);
-    });
-  });
-}
-
-function setupPhotos(block) {
-  const grid = block.querySelector('.photos');
-  const input = block.querySelector('.file-input');
-  const char = characters.find(c => c.el === block);
-  for (let i = 0; i < 4; i++) {
-    const slot = document.createElement('div');
-    slot.className = 'photo-slot';
-    slot.innerHTML = `<span>Photo ${i+1}</span>`;
-    slot.onclick = () => { input.dataset.idx = i; input.click(); };
-    grid.appendChild(slot);
+/* ======================================================================
+   Helpers
+   ====================================================================== */
+const $ = (sel, root = document) => root.querySelector(sel);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const h = (tag, attrs = {}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
   }
-  input.onchange = () => {
-    const idx = parseInt(input.dataset.idx || 0);
-    const file = input.files[0];
-    if (!file) return;
-    char.files[idx] = file;
-    const reader = new FileReader();
-    reader.onload = () => {
-      char.photos[idx] = reader.result;
-      const slot = grid.children[idx];
-      slot.innerHTML = `<img src="${reader.result}"><div class="badge">${file.name.length > 12 ? 'Photo' : 'OK'}</div>`;
-      extractColors(reader.result, char);
-    };
-    reader.readAsDataURL(file);
-    input.value = '';
-  };
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid);
+  return el;
+};
+const safeName = (s, fb = 'character') => (s || '').replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 40) || fb;
+const tagsFor = (c, section) => GROUPS.filter(g => g.section === section).flatMap(g => c.sel[g.key]);
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+let toastTimer;
+function toast(msg, err = false) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.toggle('err', err);
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-function extractColors(dataUrl, char) {
-  const img = new Image();
-  img.onload = () => {
-    const c = document.createElement('canvas');
-    c.width = 40; c.height = 40;
-    const ctx = c.getContext('2d');
-    ctx.drawImage(img, 0, 0, 40, 40);
-    const data = ctx.getImageData(0,0,40,40).data;
-    const counts = {};
-    for (let i = 0; i < data.length; i += 16) {
-      const r = data[i], g = data[i+1], b = data[i+2];
-      const key = `#${((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)}`;
-      counts[key] = (counts[key]||0)+1;
-    }
-    char.colors = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0]);
-    updatePreview();
-  };
-  img.src = dataUrl;
+function heightText(c) {
+  if (c.hUnit === 'cm') return c.cm ? `${c.cm} cm` : '';
+  const ft = parseInt(c.ft, 10) || 0, inch = parseInt(c.inch, 10) || 0;
+  if (!ft && !inch) return '';
+  return `${ft}'${inch}" (${Math.round((ft * 12 + inch) * 2.54)} cm)`;
 }
-
-function getCharData(block) {
-  const h = block.querySelector('.c-height').value;
-  const hu = block.querySelector('.c-hunit').value;
-  const w = block.querySelector('.c-weight').value;
-  const wu = block.querySelector('.c-wunit').value;
-  let height = '—', weight = '—';
-  if (h) height = hu === 'cm' ? `${h} cm` : `${h} cm`;
-  if (w) weight = wu === 'kg' ? `${w} kg` : `${w} lbs`;
+function weightText(c) {
+  if (!c.weight) return '';
+  return c.wUnit === 'kg' ? `${c.weight} kg` : `${c.weight} lbs (${Math.round(c.weight * 0.4536)} kg)`;
+}
+function charData(c) {
   return {
-    name: block.querySelector('.c-name').value.trim() || 'CHARACTER',
-    
-    height, weight,
-    appearance: block.querySelector('.c-appearance').value.trim() || '—',
-    style: block.querySelector('.c-style').value.trim() || '—',
-    vibe: block.querySelector('.c-vibe').value.trim() || '—',
-    notes: block.querySelector('.c-notes').value.trim() || '—'
+    name: c.name.trim() || 'CHARACTER',
+    height: heightText(c) || '—',
+    weight: weightText(c) || '—',
+    appearance: tagsFor(c, 'appearance').join(', ') || '—',
+    style: tagsFor(c, 'style').join(', ') || '—',
+    vibe: tagsFor(c, 'vibe').join(', ') || '—',
+    notes: c.notes.trim() || '—',
   };
 }
 
+/* ======================================================================
+   Prompt (output format kept compatible with SKILL.md "Path A")
+   ====================================================================== */
 function buildPrompt(data, format, strength, blank) {
   const strengthText = {
     strict: 'Match the reference photos as closely as possible. Prioritize exact likeness.',
     balanced: 'Use the reference photos for identity but allow natural lighting and styling.',
-    loose: 'Use the photos mainly for vibe and general look. Stylized interpretation is fine.'
+    loose: 'Use the photos mainly for vibe and general look. Stylized interpretation is fine.',
   }[strength];
 
   const consistency = `
@@ -389,7 +634,7 @@ Consistency rules:
 - No morphing between angles.
 ${strengthText}`;
 
-  let layout = '';
+  let layout;
   if (format === 'classic') {
     layout = `STRICT CHARACTER REFERENCE SHEET LAYOUT. Black background. Do not deviate from this structure.
 
@@ -440,179 +685,548 @@ Vibe: ${data.vibe}
 Notes: ${data.notes}
 `;
 }
+const currentPrompt = (c = cur()) => buildPrompt(charData(c), state.out.format, state.out.strength, state.out.blank);
 
-function updatePreview() {
-  const blocks = document.querySelectorAll('.char-block');
-  if (!blocks.length) return;
-  const data = getCharData(blocks[0]);
-  const char = characters.find(c => c.el === blocks[0]);
-  document.getElementById('pName').textContent = data.name;
-  document.getElementById('pStats').textContent = `${data.height} · ${data.weight}`;
-  document.getElementById('pApp').textContent = data.appearance.slice(0, 120) + (data.appearance.length > 120 ? '…' : '');
-  document.getElementById('pStyle').textContent = data.style.slice(0, 80);
-  document.getElementById('pVibe').textContent = data.vibe.slice(0, 80);
-  const palette = document.getElementById('pPalette');
-  const sw = document.getElementById('previewSwatches');
-  palette.innerHTML = '';
-  sw.innerHTML = '';
-  (char?.colors || []).forEach(c => {
-    const d = document.createElement('div');
-    d.className = 'palette-swatch';
-    d.style.background = c;
-    palette.appendChild(d);
-    const s = document.createElement('div');
-    s.className = 'swatch';
-    s.style.background = c;
-    sw.appendChild(s);
+/* ======================================================================
+   Persistence (text only — photos stay in memory)
+   ====================================================================== */
+function save() {
+  try {
+    const chars = state.chars.map(({ name, hUnit, cm, ft, inch, wUnit, weight, sel, custom, notes }) =>
+      ({ name, hUnit, cm, ft, inch, wUnit, weight, sel, custom, notes }));
+    localStorage.setItem(STORE_KEY, JSON.stringify({ v: 2, chars, active: state.active, out: state.out }));
+  } catch (e) { /* storage unavailable — fine */ }
+}
+const saveSoon = debounce(save, 300);
+
+function importLegacy(list) {
+  // Old format: { name, height: "182 cm", weight: "73 kg", appearance: "a, b", style, vibe, notes }
+  const all = Object.fromEntries(GROUPS.map(g => [g.key, new Map(TAGS[g.key].map(t => [t.toLowerCase(), t]))]));
+  return list.map(d => {
+    const c = newChar({ name: d.name === 'CHARACTER' ? '' : d.name, notes: d.notes === '—' ? '' : d.notes });
+    const hm = /(\d+)\s*cm/.exec(d.height || ''); if (hm) c.cm = hm[1];
+    const wm = /(\d+)\s*(kg|lbs)/.exec(d.weight || ''); if (wm) { c.weight = wm[1]; c.wUnit = wm[2]; }
+    for (const section of ['appearance', 'style', 'vibe']) {
+      const groups = GROUPS.filter(g => g.section === section);
+      for (const raw of String(d[section] || '').split(/,\s*/)) {
+        const t = raw.trim(); if (!t || t === '—') continue;
+        const g = groups.find(g => all[g.key].has(t.toLowerCase()));
+        if (g) c.sel[g.key].push(all[g.key].get(t.toLowerCase()));
+        else if (c.custom[groups[0].key].length < MAX_CUSTOM) { c.custom[groups[0].key].push(t); c.sel[groups[0].key].push(t); }
+      }
+    }
+    return c;
   });
 }
 
-document.getElementById('addChar').onclick = () => createCharBlock();
-document.getElementById('save').onclick = () => {
-  const data = [];
-  document.querySelectorAll('.char-block').forEach(b => data.push(getCharData(b)));
-  localStorage.setItem('cs-profiles', JSON.stringify(data));
-  document.getElementById('status').textContent = 'Profile saved locally.';
-};
-document.getElementById('load').onclick = () => {
-  const raw = localStorage.getItem('cs-profiles');
-  if (!raw) return;
-  document.getElementById('characters').innerHTML = '';
-  characters = [];
-  JSON.parse(raw).forEach(d => createCharBlock(d));
-  document.getElementById('status').textContent = 'Loaded last profile.';
-};
-document.getElementById('openGrok').onclick = () => {
-  const blocks = document.querySelectorAll('.char-block');
-  if (!blocks.length) return;
-  const data = getCharData(blocks[0]);
-  const prompt = buildPrompt(data, document.getElementById('format').value, document.getElementById('strength').value, document.getElementById('blankText').checked);
-  navigator.clipboard.writeText(prompt);
-  document.getElementById('status').textContent = 'Prompt copied. Paste it in Grok and attach your photos.';
-  window.open('https://grok.x.ai', '_blank');
-};
-
-document.getElementById('generate').onclick = async () => {
-  const status = document.getElementById('status');
-  const btn = document.getElementById('generate');
-  btn.disabled = true;
-  status.textContent = 'Building zip…';
-
-  const format = document.getElementById('format').value;
-  const strength = document.getElementById('strength').value;
-  const variations = parseInt(document.getElementById('variations').value, 10);
-  const blank = document.getElementById('blankText').checked;
-  const turnaround = document.getElementById('turnaroundOnly').checked;
-
-  const zip = new JSZip();
-  const blocks = document.querySelectorAll('.char-block');
-
-  for (let ci = 0; ci < blocks.length; ci++) {
-    const block = blocks[ci];
-    const data = getCharData(block);
-    const char = characters.find(c => c.el === block);
-    const folderName = blocks.length > 1 ? `character_${ci+1}_${data.name.replace(/[^a-z0-9]/gi,'_')}` : data.name.replace(/[^a-z0-9]/gi,'_') || 'character';
-    const folder = zip.folder(folderName);
-
-    for (let v = 1; v <= variations; v++) {
-      let prompt = buildPrompt(data, format, strength, blank);
-      if (variations > 1) prompt = `VARIATION ${v}\n\n` + prompt + `\n\nSlight lighting and crop variation ${v}.`;
-      folder.file(variations > 1 ? `prompt_v${v}.txt` : 'prompt.txt', prompt);
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      state.chars = (d.chars || []).map(x => newChar(x));
+      state.active = Math.min(d.active || 0, Math.max(0, state.chars.length - 1));
+      Object.assign(state.out, d.out || {});
+    } else {
+      const legacy = localStorage.getItem(LEGACY_KEY);
+      if (legacy) state.chars = importLegacy(JSON.parse(legacy));
     }
+  } catch (e) { state.chars = []; }
+  if (!state.chars.length) state.chars = [newChar()];
+}
 
-    if (turnaround) {
-      folder.file('turnaround_prompt.txt', `Full-body turnaround only. White background. FRONT LEFT PROFILE RIGHT PROFILE BACK. Shirtless, black pants. Exact same person from references. Consistent face and body across all four angles.\n\n${data.name} — ${data.appearance}`);
-    }
+/* ======================================================================
+   Rendering — tabs
+   ====================================================================== */
+function renderTabs() {
+  const nav = $('#tabs');
+  nav.replaceChildren(
+    ...state.chars.map((c, i) => h('button', {
+      class: 'tab', role: 'tab', type: 'button', 'aria-selected': String(i === state.active),
+      onclick: e => { if (e.target.closest('.x')) return; state.active = i; renderAll(); save(); },
+    },
+      h('span', { class: 'n', text: String(i + 1).padStart(2, '0') }),
+      h('span', { text: c.name.trim() || 'Untitled' }),
+      state.chars.length > 1 && h('span', {
+        class: 'x', role: 'button', 'aria-label': `Remove ${c.name || 'character'}`, tabindex: '0', text: '×',
+        onclick: () => removeChar(i),
+        onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); removeChar(i); } },
+      }),
+    )),
+    h('button', { class: 'tab add', type: 'button', onclick: addChar, text: '+ Character', title: 'Batch: add another character to the same zip' }),
+  );
+}
+function addChar() {
+  state.chars.push(newChar());
+  state.active = state.chars.length - 1;
+  renderAll(); save();
+  $('#f-name')?.focus();
+}
+function removeChar(i) {
+  const c = state.chars[i];
+  if (!confirm(`Remove ${c.name.trim() || 'this character'}?`)) return;
+  c.photos.forEach(p => p && URL.revokeObjectURL(p.url));
+  state.chars.splice(i, 1);
+  state.active = Math.max(0, Math.min(state.active - (i < state.active ? 1 : 0), state.chars.length - 1));
+  renderAll(); save();
+}
 
-    folder.file('INSTRUCTIONS.txt', `Upload photos/ as references.\nPaste prompt.txt (or prompt_v*.txt).\nWorks in Grok, Flux, Midjourney, etc.`);
+/* ======================================================================
+   Rendering — form
+   ====================================================================== */
+function section(n, title, hint, body, opts = {}) {
+  return h('section', { class: 'sec' + (opts.done ? ' done' : ''), id: `sec-${n}`, style: `--i:${n}`, 'aria-labelledby': `sec-${n}-t` },
+    h('div', { class: 'sec-num', 'aria-hidden': 'true', text: String(n).padStart(2, '0') }),
+    h('div', {},
+      h('div', { class: 'sec-head' },
+        h('h2', { class: 'sec-title', id: `sec-${n}-t`, text: title }),
+        hint && h('span', { class: 'sec-hint', text: hint })),
+      body));
+}
+function seg(options, value, onpick, label, wide = false) {
+  return h('div', { class: 'seg' + (wide ? ' wide' : ''), role: 'group', 'aria-label': label },
+    ...options.map(([v, text]) => h('button', {
+      type: 'button', 'aria-pressed': String(v === value), text,
+      onclick: e => {
+        e.currentTarget.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === e.currentTarget)));
+        onpick(v);
+      },
+    })));
+}
 
-    const photosFolder = folder.folder('photos');
-    let count = 0;
-    for (let i = 0; i < char.files.length; i++) {
-      if (char.files[i]) {
-        const ext = char.files[i].name.split('.').pop() || 'png';
-        photosFolder.file(`0${i+1}.${ext}`, char.files[i]);
-        count++;
-      }
+function renderForm() {
+  const c = cur();
+  const form = $('#form');
+  const changed = () => { update(); saveSoon(); };
+
+  // 01 identity
+  const heightBox = h('div', { class: 'unit-row', id: 'hbox' });
+  const drawHeight = () => {
+    heightBox.replaceChildren(
+      ...(c.hUnit === 'cm'
+        ? [h('input', { class: 'input num', id: 'f-h', type: 'number', inputmode: 'numeric', min: 100, max: 250, placeholder: '182', value: c.cm, 'aria-label': 'Height in cm', oninput: e => { c.cm = e.target.value; changed(); } })]
+        : [h('input', { class: 'input num', type: 'number', inputmode: 'numeric', min: 3, max: 8, placeholder: "6 ft", value: c.ft, 'aria-label': 'Feet', oninput: e => { c.ft = e.target.value; changed(); } }),
+           h('input', { class: 'input num', type: 'number', inputmode: 'numeric', min: 0, max: 11, placeholder: '0 in', value: c.inch, 'aria-label': 'Inches', oninput: e => { c.inch = e.target.value; changed(); } })]),
+      seg([['cm', 'cm'], ['ft', 'ft/in']], c.hUnit, v => {
+        if (v === c.hUnit) return;
+        if (v === 'ft' && c.cm) {
+          const tot = Math.round(c.cm / 2.54); c.ft = String(Math.floor(tot / 12)); c.inch = String(tot % 12);
+          c._hMemo = { cm: c.cm, ft: c.ft, inch: c.inch };
+        }
+        if (v === 'cm' && (c.ft || c.inch)) {
+          const m = c._hMemo; // switching straight back restores the exact cm value
+          c.cm = m && m.ft === c.ft && m.inch === c.inch ? m.cm : String(Math.round(((+c.ft || 0) * 12 + (+c.inch || 0)) * 2.54));
+        }
+        c.hUnit = v; drawHeight(); changed();
+      }, 'Height unit'));
+  };
+  drawHeight();
+  const weightUnit = seg([['kg', 'kg'], ['lbs', 'lbs']], c.wUnit, v => {
+    if (v === c.wUnit) return;
+    if (c.weight) {
+      const m = c._wMemo;
+      const back = m && m.unit === v && m.other === c.weight;
+      const conv = String(Math.round(v === 'lbs' ? c.weight / 0.4536 : c.weight * 0.4536));
+      c._wMemo = { unit: c.wUnit, other: back ? m.value : conv, value: c.weight };
+      c.weight = back ? m.value : conv;
     }
-    if (char.colors.length) {
-      folder.file('palette.txt', char.colors.join('\n'));
-    }
+    c.wUnit = v; $('#f-w').value = c.weight; changed();
+  }, 'Weight unit');
+
+  const identity = h('div', {},
+    h('div', { class: 'field' },
+      h('label', { for: 'f-name', text: 'Name' }),
+      h('input', { class: 'input big', id: 'f-name', maxlength: 60, autocomplete: 'off', placeholder: 'Will', value: c.name,
+        oninput: e => { c.name = e.target.value; renderTabs(); changed(); } })),
+    h('div', { class: 'grid-3' },
+      h('div', { class: 'field' }, h('label', { for: 'f-h', text: 'Height' }), heightBox),
+      h('div', { class: 'field' }, h('label', { for: 'f-w', text: 'Weight' }),
+        h('div', { class: 'unit-row' },
+          h('input', { class: 'input num', id: 'f-w', type: 'number', inputmode: 'numeric', min: 1, max: 500, placeholder: c.wUnit === 'kg' ? '73' : '160', value: c.weight, oninput: e => { c.weight = e.target.value; changed(); } }),
+          weightUnit))));
+
+  const groupBlock = sec => GROUPS.filter(g => g.section === sec).map(g => tagGroup(c, g));
+
+  // 05 notes
+  const notes = h('textarea', { class: 'textarea', id: 'f-notes', maxlength: 1000, placeholder: 'Tattoos, scars, poses, props, colors — anything the tags missed.', oninput: e => { c.notes = e.target.value; changed(); } });
+  notes.value = c.notes;
+
+  form.replaceChildren(
+    section(1, 'Identity', 'Name and stats', identity),
+    section(2, 'Appearance', 'Tap all that fit · add your own', h('div', {}, ...groupBlock('appearance'))),
+    section(3, 'Style', 'What they wear', h('div', {}, ...groupBlock('style'))),
+    section(4, 'Vibe', 'How they come across', h('div', {}, ...groupBlock('vibe'))),
+    section(5, 'Notes', 'Optional', notes),
+    section(6, 'Reference photos', `1–${MAX_PHOTOS} photos · drag & drop`, photoBlock(c)),
+    section(7, 'Output', 'Applies to every character', outputBlock()),
+  );
+  markDone();
+}
+
+function tagGroup(c, g) {
+  const wrap = h('div', { class: 'group', 'data-group': g.key });
+  const draw = (focusInput = false) => {
+    const all = [...c.custom[g.key], ...TAGS[g.key]];
+    const sel = c.sel[g.key];
+    const clamp = all.length > CLAMP_AT && !c.expanded[g.key];
+    const toggle = t => {
+      const i = sel.indexOf(t);
+      if (i >= 0) sel.splice(i, 1); else sel.push(t);
+      draw(); update(); saveSoon();
+    };
+    const chips = h('div', { class: 'chips' + (clamp ? ' clamped' : '') },
+      ...all.map(t => {
+        const custom = c.custom[g.key].includes(t);
+        const on = sel.includes(t);
+        return h('button', {
+          type: 'button', class: 'chip' + (custom ? ' custom' : ''), 'aria-pressed': String(on),
+          onclick: e => {
+            if (e.target.closest('.del')) {
+              c.custom[g.key] = c.custom[g.key].filter(x => x !== t);
+              c.sel[g.key] = c.sel[g.key].filter(x => x !== t);
+              draw(); update(); saveSoon(); return;
+            }
+            toggle(t);
+          },
+        }, t, custom && h('span', { class: 'del', 'aria-label': `Delete ${t}`, title: 'Delete custom tag', text: '×' }));
+      }),
+      h('input', {
+        class: 'chip-add', type: 'text', maxlength: 120, 'aria-label': `Add your own ${g.label.toLowerCase()} tag`,
+        placeholder: c.custom[g.key].length >= MAX_CUSTOM ? 'Custom limit reached' : '+ your own',
+        disabled: c.custom[g.key].length >= MAX_CUSTOM,
+        onkeydown: e => {
+          if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            const v = e.target.value; e.target.value = '';
+            if (addCustom(c, g.key, v)) draw(true);
+          }
+        },
+        onblur: e => {
+          const v = e.target.value; e.target.value = '';
+          if (v.trim() && addCustom(c, g.key, v)) draw();
+        },
+      }));
+    const count = sel.length ? `${sel.length} selected` : '';
+    wrap.replaceChildren(
+      h('div', { class: 'group-head' },
+        h('span', { class: 'group-name', text: g.label }),
+        h('span', { class: 'group-count', text: count })),
+      chips,
+      all.length > CLAMP_AT && h('button', {
+        type: 'button', class: 'more', 'aria-expanded': String(!clamp),
+        text: clamp ? `Show all ${all.length} ↓` : 'Show less ↑',
+        onclick: () => { c.expanded[g.key] = !c.expanded[g.key]; draw(); },
+      }));
+    if (focusInput) wrap.querySelector('.chip-add')?.focus();
+  };
+  draw();
+  return wrap;
+}
+
+function addCustom(c, key, raw) {
+  let added = false;
+  for (const part of String(raw).split(/[,\n]/)) {
+    const t = part.replace(/\s+/g, ' ').trim().slice(0, 40);
+    if (!t) continue;
+    const all = [...c.custom[key], ...TAGS[key]];
+    const hit = all.find(x => x.toLowerCase() === t.toLowerCase());
+    if (hit) { if (!c.sel[key].includes(hit)) c.sel[key].push(hit); added = true; continue; }
+    if (c.custom[key].length >= MAX_CUSTOM) { toast(`Max ${MAX_CUSTOM} custom tags per group`, true); break; }
+    c.custom[key].push(t); c.sel[key].push(t); added = true;
   }
+  if (added) { update(); saveSoon(); }
+  return added;
+}
 
-  const blob = await zip.generateAsync({ type: 'blob' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'character_sheets.zip';
-  a.click();
-  status.textContent = 'Downloaded character_sheets.zip';
-  btn.disabled = false;
-};
+/* ---------- photos ---------- */
+function photoBlock(c) {
+  const input = h('input', { type: 'file', accept: 'image/*', multiple: true, hidden: true });
+  let target = null;
+  const grid = h('div', { class: 'drop' });
+  const draw = () => {
+    grid.replaceChildren(...c.photos.map((p, i) => p
+      ? h('div', { class: 'slot filled' },
+          h('img', { src: p.url, alt: `Reference photo ${i + 1}` }),
+          h('span', { class: 'tagline', text: `${String(i + 1).padStart(2, '0')} · ${SLOT_HINTS[i]}` }),
+          h('button', { class: 'rm', type: 'button', 'aria-label': `Remove photo ${i + 1}`, text: '×', onclick: () => { URL.revokeObjectURL(p.url); c.photos[i] = null; draw(); photosChanged(c); } }))
+      : h('button', { class: 'slot', type: 'button', 'aria-label': `Add photo ${i + 1}: ${SLOT_HINTS[i]}`, onclick: () => { target = i; input.click(); } },
+          h('span', { class: 'num', text: String(i + 1).padStart(2, '0') }),
+          h('span', { class: 'plus', 'aria-hidden': 'true', text: '+' }),
+          h('span', { class: 'lbl', text: SLOT_HINTS[i] }))));
+  };
+  const addFiles = files => {
+    const imgs = [...files].filter(f => f.type.startsWith('image/'));
+    if (!imgs.length) return;
+    let slots = c.photos.map((p, i) => p ? -1 : i).filter(i => i >= 0);
+    if (target != null && !c.photos[target]) slots = [target, ...slots.filter(i => i !== target)];
+    target = null;
+    if (imgs.length > slots.length) toast(`Only ${slots.length} free slot${slots.length === 1 ? '' : 's'} — extra photos skipped`, true);
+    imgs.slice(0, slots.length).forEach((f, k) => {
+      const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'jpg';
+      c.photos[slots[k]] = { file: f, url: URL.createObjectURL(f), ext };
+    });
+    draw(); photosChanged(c);
+  };
+  input.addEventListener('change', () => { addFiles(input.files); input.value = ''; });
+  grid.addEventListener('dragover', e => { e.preventDefault(); grid.classList.add('over'); });
+  grid.addEventListener('dragleave', e => { if (!grid.contains(e.relatedTarget)) grid.classList.remove('over'); });
+  grid.addEventListener('drop', e => { e.preventDefault(); grid.classList.remove('over'); addFiles(e.dataTransfer.files); });
+  draw();
+  return h('div', {}, grid, input,
+    h('p', { class: 'drop-note' }, 'A clear, front-lit ', h('b', { text: 'face close-up' }), ' matters most. Photos stay on this device — they go into your zip and nowhere else.'));
+}
 
+function photosChanged(c) {
+  extractPalette(c).then(() => { if (c === cur()) update(); });
+  update();
+}
 
-document.getElementById('sendToBuilder').onclick = async () => {
-  const status = document.getElementById('status');
-  const blocks = document.querySelectorAll('.char-block');
-  if (!blocks.length) return;
-
-  status.textContent = 'Preparing package…';
-
-  const format = document.getElementById('format').value;
-  const strength = document.getElementById('strength').value;
-  const blank = document.getElementById('blankText').checked;
-
-  const zip = new JSZip();
-  const block = blocks[0];
-  const data = getCharData(block);
-  const char = characters.find(c => c.el === block);
-
-  const prompt = buildPrompt(data, format, strength, blank);
-  zip.file('prompt.txt', prompt);
-  zip.file('INSTRUCTIONS.txt', 'Upload the photos and paste prompt.txt into an image generator.');
-
-  const photosFolder = zip.folder('photos');
-  const filesToShare = [];
-  for (let i = 0; i < char.files.length; i++) {
-    if (char.files[i]) {
-      const ext = char.files[i].name.split('.').pop() || 'png';
-      photosFolder.file(`0${i+1}.${ext}`, char.files[i]);
-      filesToShare.push(new File([char.files[i]], `photo_${i+1}.${ext}`, { type: char.files[i].type }));
-    }
-  }
-
-  const blob = await zip.generateAsync({ type: 'blob' });
-  const zipFile = new File([blob], `${data.name.replace(/[^a-z0-9]/gi,'_')}_character_sheet.zip`, { type: 'application/zip' });
-
-  // Try Web Share API first (works well on mobile)
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [zipFile] })) {
+/* Palette: coarse histogram across all photos, then pick distinct colors. */
+async function extractPalette(c) {
+  const counts = new Map();
+  for (const p of c.photos.filter(Boolean)) {
     try {
-      await navigator.share({
-        title: `Character sheet for ${data.name}`,
-        text: `Please generate a character sheet for ${data.name}.\n\nPrompt is inside the zip.`,
-        files: [zipFile]
-      });
-      status.textContent = 'Shared successfully.';
-      return;
-    } catch (e) {
-      // user cancelled or failed, fall through
-    }
+      const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = p.url; });
+      const cv = document.createElement('canvas'); cv.width = cv.height = 48;
+      const ctx = cv.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, 48, 48);
+      const d = ctx.getImageData(0, 0, 48, 48).data;
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i] >> 4, g = d[i + 1] >> 4, b = d[i + 2] >> 4;
+        const k = (r << 8) | (g << 4) | b;
+        const e = counts.get(k) || { n: 0, r: 0, g: 0, b: 0 };
+        e.n++; e.r += d[i]; e.g += d[i + 1]; e.b += d[i + 2];
+        counts.set(k, e);
+      }
+    } catch (e) { /* unreadable image — skip */ }
   }
+  const ranked = [...counts.values()].sort((a, b) => b.n - a.n).map(e => [e.r / e.n, e.g / e.n, e.b / e.n]);
+  const picked = [];
+  for (const col of ranked) {
+    if (picked.every(p => Math.hypot(p[0] - col[0], p[1] - col[1], p[2] - col[2]) > 48)) picked.push(col);
+    if (picked.length === 4) break;
+  }
+  c.colors = picked.map(([r, g, b]) => '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join(''));
+}
 
-  // Fallback: download zip + open email with prompt
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = zipFile.name;
-  a.click();
+/* ---------- output ---------- */
+function outputBlock() {
+  const o = state.out;
+  const changed = () => { update(); saveSoon(); };
+  const vOut = h('output', { text: String(o.variations) });
+  const minus = h('button', { type: 'button', 'aria-label': 'Fewer variations', text: '−' });
+  const plus = h('button', { type: 'button', 'aria-label': 'More variations', text: '+' });
+  const syncStep = () => { vOut.textContent = o.variations; minus.disabled = o.variations <= 1; plus.disabled = o.variations >= 3; };
+  minus.onclick = () => { o.variations = Math.max(1, o.variations - 1); syncStep(); changed(); };
+  plus.onclick = () => { o.variations = Math.min(3, o.variations + 1); syncStep(); changed(); };
+  syncStep();
+  const toggle = (key, text) => h('label', { class: 'toggle' },
+    h('input', { type: 'checkbox', checked: o[key], onchange: e => { o[key] = e.target.checked; changed(); } }),
+    h('span', { class: 'sw', 'aria-hidden': 'true' }), text);
+  const row = (label, ctrl) => h('div', { class: 'out-row' }, h('span', { class: 'flabel', text: label }), ctrl);
+  return h('div', { class: 'out-grid' },
+    row('Format', seg([['classic', 'Classic black'], ['white', 'Clean white'], ['story', 'Story 9:16']], o.format, v => { o.format = v; changed(); }, 'Format', true)),
+    row('Likeness', seg([['strict', 'Strict'], ['balanced', 'Balanced'], ['loose', 'Loose']], o.strength, v => { o.strength = v; changed(); }, 'Reference strength', true)),
+    row('Variations', h('div', { class: 'stepper', role: 'group', 'aria-label': 'Variations' }, minus, vOut, plus)),
+    row('Extras', h('div', { class: 'toggles' },
+      toggle('blank', 'Blank text areas — solid blocks for clean overlays later'),
+      toggle('turnaround', 'Also include a turnaround-only prompt'))));
+}
 
-  const subject = encodeURIComponent(`Character sheet request: ${data.name}`);
-  const body = encodeURIComponent(`Hi,\n\nPlease generate a character sheet for ${data.name}.\n\nI've attached the zip with photos and prompt.txt.\n\n---\n${prompt.slice(0, 1500)}`);
-  window.location.href = `mailto:YOUR_EMAIL_HERE?subject=${subject}&body=${body}`;
+/* ======================================================================
+   Rendering — live sheet
+   ====================================================================== */
+const FIG_FRONT = '<svg viewBox="0 0 40 100" aria-hidden="true"><circle cx="20" cy="10" r="6.5"/><path d="M14.5 19.5h11l3.6 2.2 2.4 24.8-2.5.4-2.6-20.6-.4 29.6-1.8 40.6h-3.3L20.2 61l-.9 35.5h-3.3l-1.8-40.6-.4-29.6-2.6 20.6-2.5-.4 2.4-24.8z"/></svg>';
+const FIG_SIDE = '<svg viewBox="0 0 40 100" aria-hidden="true"><circle cx="21" cy="10" r="6.3"/><path d="M17.6 19.5h6.2l1.6 2.6.8 22.4-.8 11.4-1.2 40.6h-3.6l-.6-36-1 36h-3.2l-.6-40.6-.8-11.4.6-22.4z"/></svg>';
+const SLOT_LABELS = ['FRONT', 'LEFT PROFILE', 'RIGHT PROFILE', 'BACK'];
 
-  status.textContent = 'Zip downloaded. Email opened — attach the zip and send.';
-};
+function renderSheet() {
+  const c = cur(), o = state.out, d = charData(c);
+  const sheet = $('#sheet');
+  sheet.className = `sheet fmt-${o.format}${o.blank ? ' blank' : ''}`;
+  const named = !!c.name.trim();
+  const app = tagsFor(c, 'appearance'), sty = tagsFor(c, 'style'), vib = tagsFor(c, 'vibe');
+  const photos = c.photos.filter(Boolean);
+  const ph = i => photos[i] ? `<img src="${esc(photos[i].url)}" alt="">` : '';
+  const list = (arr, n, cols) => arr.length ? `<ul class="s-list${cols ? ' cols' : ''}">${arr.slice(0, n).map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '<div class="s-text s-empty">—</div>';
+  const swatches = (labels, cols) => `<div class="s-pal">${labels.map((l, i) => `<div class="s-sw"><span${cols[i] ? ` style="background:${cols[i]}"` : ''}></span>${l}</div>`).join('')}</div>`;
+  const stats = `<div class="s-block"><p class="s-h">STATS</p><div class="s-stats"><div>↕ ${esc(heightText(c) || '—')}</div><div>◎ ${esc(weightText(c) || '—')}</div></div></div>`;
 
-// Init
-createCharBlock();
+  sheet.innerHTML = `<div class="sg">
+    <div class="s-side">
+      <div>
+        <div class="s-name${named ? '' : ' ph'}">${esc(named ? c.name.trim() : 'Name')}</div>
+        <div class="s-kicker">CHARACTER SHEET</div>
+      </div>
+      <div class="s-status"><i></i>ONLINE · 21:47 · 2 KM</div>
+      <div class="hide-story">${stats}</div>
+      <div class="s-block hide-story"><p class="s-h">APPEARANCE</p>${list(app, 8, true)}</div>
+      <div class="s-block hide-story"><p class="s-h">PERSONAL STYLE</p>${list(sty, 4, true)}</div>
+      <div class="s-block"><p class="s-h">VIBE</p><div class="s-text${vib.length ? '' : ' s-empty'}">${esc(vib.length ? vib.slice(0, 6).join(', ') : '—')}</div></div>
+      <div class="s-block hide-story"><p class="s-h">COLOR PALETTE</p>${swatches(['Hair', 'Eyes', 'Skin', 'Beard'], c.colors)}</div>
+    </div>
+    <div class="s-photos">${[0, 1, 2].map(i => `<div class="s-ph">${ph(i)}<b>0${i + 1}</b></div>`).join('')}</div>
+    <div class="s-stats-story">${stats}</div>
+    <div class="s-turn">${SLOT_LABELS.map((l, i) => `<div class="s-fig">${i === 1 || i === 2 ? FIG_SIDE.replace('<svg', i === 2 ? '<svg style="transform:scaleX(-1)"' : '<svg') : FIG_FRONT}<span>${l}</span></div>`).join('')}</div>
+    <div class="s-details">
+      <div class="s-crops">${['30% 20%', '50% 45%', '60% 75%'].map(pos => `<div class="s-crop">${photos[0] ? `<img src="${esc(photos[0].url)}" alt="" style="object-position:${pos}">` : ''}</div>`).join('')}</div>
+      <div class="s-block"><p class="s-h">DETAILS / NOTES</p><div class="s-text${c.notes.trim() ? '' : ' s-empty'}">${esc(c.notes.trim() ? c.notes.trim().slice(0, 220) + (c.notes.trim().length > 220 ? '…' : '') : '—')}</div></div>
+    </div></div>`;
+  $('#capLeft').textContent = FORMATS[o.format] + (o.blank ? ' · blank text' : '');
+  $('#proofLabel').textContent = `Fig. ${String(state.active + 1).padStart(2, '0')} — Live proof`;
+}
+
+function renderPrompt() {
+  const v = state.out.variations;
+  $('#promptbox').textContent = (v > 1 ? `VARIATION 1 of ${v}\n\n` : '') + currentPrompt();
+}
+
+/* ======================================================================
+   Readiness + section state
+   ====================================================================== */
+function markDone() {
+  const c = cur();
+  const done = {
+    1: !!(c.name.trim() && heightText(c) && weightText(c)),
+    2: tagsFor(c, 'appearance').length > 0,
+    3: tagsFor(c, 'style').length > 0,
+    4: tagsFor(c, 'vibe').length > 0,
+    5: !!c.notes.trim(),
+    6: c.photos.some(Boolean),
+    7: true,
+  };
+  for (const [n, ok] of Object.entries(done)) $(`#sec-${n}`)?.classList.toggle('done', ok);
+  const score = [done[1], done[2], done[3], done[4], done[6]];
+  document.querySelectorAll('#meter i').forEach((el, i) => el.classList.toggle('on', score[i]));
+  const nPhotos = c.photos.filter(Boolean).length;
+  const nTags = GROUPS.reduce((s, g) => s + c.sel[g.key].length, 0);
+  const total = state.chars.length;
+  $('#readyTxt').innerHTML =
+    `<b>${esc(c.name.trim() || 'Untitled')}</b> · ${nTags} tag${nTags === 1 ? '' : 's'} · ${nPhotos}/${MAX_PHOTOS} photos` +
+    (total > 1 ? ` · batch of ${total}` : '') +
+    (nPhotos ? '' : ' · <span style="color:var(--yellow)">add a face photo</span>');
+}
+
+function update() {
+  renderSheet();
+  if (state.view === 'prompt') renderPrompt();
+  markDone();
+}
+function renderAll() {
+  renderTabs(); renderForm(); update();
+}
+
+/* ======================================================================
+   Export
+   ====================================================================== */
+async function buildZip() {
+  if (!window.JSZip) throw new Error('Zip library failed to load — check your connection and reload.');
+  const zip = new JSZip();
+  const o = state.out;
+  const multi = state.chars.length > 1;
+  const used = new Set();
+  state.chars.forEach((c, ci) => {
+    const d = charData(c);
+    let folderName = multi ? `character_${ci + 1}_${safeName(c.name)}` : safeName(c.name);
+    while (used.has(folderName)) folderName += '_';
+    used.add(folderName);
+    const folder = zip.folder(folderName);
+    for (let v = 1; v <= o.variations; v++) {
+      let prompt = buildPrompt(d, o.format, o.strength, o.blank);
+      if (o.variations > 1) prompt = `VARIATION ${v}\n\n${prompt}\n\nSlight lighting and crop variation ${v}.`;
+      folder.file(o.variations > 1 ? `prompt_v${v}.txt` : 'prompt.txt', prompt);
+    }
+    if (o.turnaround) {
+      folder.file('turnaround_prompt.txt', `Full-body turnaround only. White background. FRONT LEFT PROFILE RIGHT PROFILE BACK. Shirtless, black pants. Exact same person from references. Consistent face and body across all four angles.\n\n${d.name} — ${d.appearance}`);
+    }
+    folder.file('INSTRUCTIONS.txt', 'Upload photos/ as references.\nPaste prompt.txt (or prompt_v*.txt).\nWorks in Grok, Flux, Midjourney, etc.');
+    const pf = folder.folder('photos');
+    c.photos.forEach((p, i) => { if (p) pf.file(`0${i + 1}.${p.ext}`, p.file); });
+    if (c.colors.length) folder.file('palette.txt', c.colors.join('\n'));
+  });
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const name = multi ? 'character_sheets.zip' : `${safeName(state.chars[0].name)}_refsheet.zip`;
+  return { blob, name };
+}
+
+function download(blob, name) {
+  const a = h('a', { href: URL.createObjectURL(blob), download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+async function withBusy(btn, fn) {
+  btn.disabled = true;
+  try { await fn(); } catch (e) { toast(e.message || 'Something went wrong', true); } finally { btn.disabled = false; }
+}
+
+$('#zipBtn').addEventListener('click', e => withBusy(e.currentTarget, async () => {
+  const { blob, name } = await buildZip();
+  download(blob, name);
+  const missing = state.chars.filter(c => !c.photos.some(Boolean)).length;
+  toast(missing ? `Downloaded ${name} — ${missing === 1 && state.chars.length === 1 ? 'no photos included' : `${missing} without photos`}` : `Downloaded ${name}`);
+}));
+
+$('#copyBtn').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(currentPrompt());
+    toast('Prompt copied — paste it in Grok and attach your photos');
+  } catch (e) {
+    toast('Could not copy — open the Prompt tab and copy manually', true);
+    return;
+  }
+  window.open(GROK_URL, '_blank', 'noopener');
+});
+$('#copyPrompt2').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('#promptbox').textContent); toast('Prompt copied'); }
+  catch (e) { toast('Could not copy — select the text manually', true); }
+});
+
+// Native share sheet (mobile) for the zip
+const shareBtn = $('#shareBtn');
+try {
+  if (navigator.canShare && navigator.canShare({ files: [new File(['x'], 'x.zip', { type: 'application/zip' })] })) shareBtn.hidden = false;
+} catch (e) { /* not supported */ }
+shareBtn.addEventListener('click', e => withBusy(e.currentTarget, async () => {
+  const { blob, name } = await buildZip();
+  const file = new File([blob], name, { type: 'application/zip' });
+  try {
+    await navigator.share({ files: [file], title: 'RefSheet package', text: 'Character reference sheet package — prompt.txt + photos inside.' });
+  } catch (err) {
+    if (err.name !== 'AbortError') { download(blob, name); toast('Sharing failed — downloaded instead'); }
+  }
+}));
+
+// "Have it made" → Telegram bot
+if (BUILDER_URL) {
+  const b = $('#builderBtn');
+  b.href = BUILDER_URL; b.hidden = false;
+  b.title = 'No image model? Send your info and photos to the RefSheet Telegram bot.';
+}
+
+// Sheet / Prompt views
+document.querySelectorAll('.views [data-view]').forEach(btn => btn.addEventListener('click', () => {
+  state.view = btn.dataset.view;
+  document.querySelectorAll('.views [data-view]').forEach(b => b.setAttribute('aria-selected', String(b === btn)));
+  $('#viewSheet').hidden = state.view !== 'sheet';
+  $('#viewPrompt').hidden = state.view !== 'prompt';
+  if (state.view === 'prompt') renderPrompt();
+}));
+
+// Mobile proof overlay
+$('#openProof').addEventListener('click', () => { document.body.classList.add('show-proof'); $('#proofClose').focus(); });
+$('#proofClose').addEventListener('click', () => { document.body.classList.remove('show-proof'); $('#openProof').focus(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.body.classList.remove('show-proof'); });
+
+/* ======================================================================
+   Boot
+   ====================================================================== */
+load();
+renderAll();
+addEventListener('pagehide', save);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(); });
+window.__refsheet = { state, buildPrompt, buildZip, charData }; // handy for debugging/tests
+})();
 </script>
 </body>
 </html>
