@@ -2,7 +2,7 @@
 
 Web app for building professional character reference sheets. Download a zip you can drop into any image model.
 
-**Live:** https://chicksonspeed.github.io/character-sheet-skill/
+**Live:** https://chicksonspeed.github.io/refsheet/
 
 ## Features
 
@@ -30,4 +30,4 @@ Web app for building professional character reference sheets. Download a zip you
 
 ## Repo
 
-https://github.com/chicksonspeed/character-sheet-skill
+https://github.com/chicksonspeed/refsheet
