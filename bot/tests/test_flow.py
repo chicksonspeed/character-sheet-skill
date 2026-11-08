@@ -134,3 +134,12 @@ def test_off_step_input_gets_reply(harness):
     h = harness
     h.run([h.msg("/start"), h.msg(photo=[PhotoSize("f", "u", 10, 10)])])
     assert "Didn't catch that" in h.out[-1]
+
+
+def test_start_mentions_admin_copy_only_when_admin_set(harness, monkeypatch):
+    h = harness
+    h.run([h.msg("/start")])
+    assert "sent to the bot admin" not in h.out[-1]
+    monkeypatch.setattr(bot, "ADMIN_ID", 42)
+    h.run([h.msg("/start")])
+    assert "sent to the bot admin" in h.out[-1]

@@ -78,8 +78,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
     context.user_data["photos"] = []
     context.user_data["selected"] = {"appearance": [], "style": [], "vibe": []}
+    privacy = (
+        "\n\nNote: a copy of your finished package (info + photos) is sent to the bot admin."
+        if ADMIN_ID else ""
+    )
     await update.message.reply_text(
-        "RefSheet\n\nI'll ask a few questions, then you can upload photos.\n\nWhat's the character's name?"
+        "RefSheet\n\nI'll ask a few questions, then you can upload photos."
+        f"{privacy}\n\nWhat's the character's name?"
     )
     return NAME
 
