@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Character Sheet Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root {
     --bg: #0c0a0d;
@@ -117,25 +118,7 @@
     margin-top: 8px;
   }
   button:hover { filter: brightness(1.1); }
-  button.secondary {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text);
-    margin-top: 10px;
-  }
-  #output {
-    display: none;
-    white-space: pre-wrap;
-    background: #0e0c10;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.85rem;
-    line-height: 1.45;
-    max-height: 480px;
-    overflow: auto;
-  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
   .note {
     font-size: 0.85rem;
     color: var(--muted);
@@ -144,13 +127,14 @@
   .success {
     color: var(--accent2);
     font-weight: 600;
+    margin-bottom: 8px;
   }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Character Sheet</h1>
-  <p class="subtitle">Fill in the details and upload reference photos. Get a ready-to-use prompt for a strict Will-style character sheet.</p>
+  <p class="subtitle">Fill in the details and upload reference photos. Download a zip you can drop into any image model.</p>
 
   <div class="card">
     <div class="row">
@@ -185,7 +169,7 @@
 
   <div class="card">
     <label>Reference Photos</label>
-    <p class="note">Upload 1–4 clear photos (face close-up + body shots work best). They’ll be referenced in the prompt.</p>
+    <p class="note">Upload 1–4 clear photos (face close-up + body shots work best).</p>
     <div class="photos" id="photoGrid">
       <div class="photo-slot" data-index="0"><span>Photo 1</span></div>
       <div class="photo-slot" data-index="1"><span>Photo 2</span></div>
@@ -195,17 +179,13 @@
     <input type="file" id="fileInput" accept="image/*" multiple hidden />
   </div>
 
-  <button id="generate">Generate Prompt</button>
-  <button class="secondary" id="copy" style="display:none">Copy Prompt</button>
-
-  <div class="card" id="outputCard" style="display:none">
-    <div class="success" id="status"></div>
-    <div id="output"></div>
-  </div>
+  <button id="generate">Download Zip</button>
+  <div id="status" class="success" style="margin-top:12px;"></div>
 </div>
 
 <script>
 const photos = [null, null, null, null];
+const photoFiles = [null, null, null, null];
 const fileInput = document.getElementById('fileInput');
 const photoGrid = document.getElementById('photoGrid');
 
@@ -220,6 +200,7 @@ fileInput.addEventListener('change', () => {
   const idx = parseInt(fileInput.dataset.index || '0', 10);
   const file = fileInput.files[0];
   if (!file) return;
+  photoFiles[idx] = file;
   const reader = new FileReader();
   reader.onload = () => {
     photos[idx] = reader.result;
@@ -234,12 +215,17 @@ function val(id) {
   return document.getElementById(id).value.trim() || '—';
 }
 
-document.getElementById('generate').addEventListener('click', () => {
-  const name = val('name');
+document.getElementById('generate').addEventListener('click', async () => {
+  const btn = document.getElementById('generate');
+  const status = document.getElementById('status');
+  btn.disabled = true;
+  status.textContent = 'Building zip...';
+
+  const name = val('name').replace(/[^a-z0-9]/gi, '_') || 'character';
   const prompt = `STRICT CHARACTER REFERENCE SHEET LAYOUT. Black background. Do not deviate from this structure.
 
 LEFT SIDEBAR (narrow vertical panel, black background):
-- Very large bold white text: "${name}"
+- Very large bold white text: "${val('name')}"
 - Small yellow text underneath: "CHARACTER SHEET"
 - Status block: "ONLINE" + time + distance
 - Section titled "STATS" with three lines (role, height, weight) with small icons
@@ -263,7 +249,7 @@ FAR RIGHT PANEL:
 Use the uploaded photos as the primary visual reference for face, body, and appearance. Keep the character highly consistent across every view. Clean modern sans-serif typography, high contrast white and yellow text on black, professional character sheet aesthetic, sharp, photorealistic.
 
 Character information:
-Name: ${name}
+Name: ${val('name')}
 Height: ${val('height')}
 Weight: ${val('weight')}
 Role: ${val('role')}
@@ -271,22 +257,52 @@ Appearance: ${val('appearance')}
 Style: ${val('style')}
 Vibe: ${val('vibe')}
 Notes: ${val('notes')}
+`;
 
-Reference photos provided: ${photos.filter(Boolean).length} image(s).`;
+  const instructions = `CHARACTER SHEET PACKAGE
+======================
 
-  const output = document.getElementById('output');
-  output.textContent = prompt;
-  output.style.display = 'block';
-  document.getElementById('outputCard').style.display = 'block';
-  document.getElementById('status').textContent = 'Prompt ready — copy it into Grok, Flux, Midjourney, or any image generator that accepts reference images.';
-  document.getElementById('copy').style.display = 'block';
-});
+How to use:
+1. Upload the images in the /photos folder as reference images.
+2. Paste the contents of prompt.txt as your prompt.
+3. Works with Grok, Flux, Midjourney, Ideogram, and most image generators that accept reference photos.
 
-document.getElementById('copy').addEventListener('click', () => {
-  const text = document.getElementById('output').textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    document.getElementById('status').textContent = 'Copied to clipboard.';
-  });
+Files:
+- prompt.txt     → full strict-layout character sheet prompt
+- photos/        → reference images (01, 02, 03...)
+`;
+
+  try {
+    const zip = new JSZip();
+    zip.file('prompt.txt', prompt);
+    zip.file('INSTRUCTIONS.txt', instructions);
+
+    const photosFolder = zip.folder('photos');
+    let photoCount = 0;
+    for (let i = 0; i < photoFiles.length; i++) {
+      if (photoFiles[i]) {
+        const ext = photoFiles[i].name.split('.').pop() || 'png';
+        photosFolder.file(`0${i+1}.${ext}`, photoFiles[i]);
+        photoCount++;
+      }
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name}_character_sheet.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    status.textContent = `Downloaded ${name}_character_sheet.zip (${photoCount} photo${photoCount === 1 ? '' : 's'})`;
+  } catch (err) {
+    status.textContent = 'Error building zip: ' + err.message;
+  }
+
+  btn.disabled = false;
 });
 </script>
 </body>
