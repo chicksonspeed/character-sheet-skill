@@ -5,7 +5,7 @@ type: workflow
 lifecycle: active
 ---
 
-# Character Sheet Generator
+# RefSheet
 
 Interactive workflow to collect character info and reference photos, then generate a strict-layout professional character reference sheet matching the Will-style format.
 

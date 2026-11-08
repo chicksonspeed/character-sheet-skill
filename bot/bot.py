@@ -65,7 +65,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["photos"] = []
     context.user_data["selected"] = {"appearance": [], "style": [], "vibe": []}
     await update.message.reply_text(
-        "Character Sheet Generator\n\n"
+        "RefSheet\n\n"
         "I'll ask a few questions, then you can upload photos.\n"
         "At the end you'll get a zip you can drop into any image model.\n\n"
         "What's the character's name?"

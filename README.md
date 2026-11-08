@@ -1,4 +1,4 @@
-# Character Sheet Generator
+# RefSheet
 
 Web app for building professional character reference sheets. Download a zip you can drop into any image model.
 

@@ -1,6 +1,6 @@
-# Telegram Bot
+# RefSheet Bot
 
-Character sheet generator bot. Collects info + photos and returns a zip package.
+RefSheet bot. Collects info + photos and returns a zip package.
 
 ## Setup
 
