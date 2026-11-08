@@ -4,6 +4,9 @@ RefSheet Telegram Bot
 """
 import os
 import io
+import re
+import sys
+import time
 import zipfile
 import logging
 import threading
@@ -14,13 +17,20 @@ from telegram.ext import (
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
+    TypeHandler,
     ConversationHandler,
     ContextTypes,
     filters,
 )
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0") or "0")
+_admin_raw = (os.getenv("ADMIN_ID") or "0").strip()
+ADMIN_ID = int(_admin_raw) if _admin_raw.lstrip("-").isdigit() else 0
+
+MAX_PHOTOS = 4
+MAX_PHOTO_BYTES = 10 * 1024 * 1024  # Bot API downloads cap at 20 MB; keep memory bounded
+CONVERSATION_TIMEOUT = 30 * 60  # seconds; frees abandoned sessions (and their photos)
+BOT_RUNNING = threading.Event()
 
 (NAME, HEIGHT, WEIGHT, APPEARANCE, STYLE, VIBE, NOTES, PHOTOS) = range(8)
 
@@ -38,9 +48,10 @@ logger = logging.getLogger(__name__)
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
+        ok = BOT_RUNNING.is_set()
+        self.send_response(200 if ok else 503)
         self.end_headers()
-        self.wfile.write(b"ok")
+        self.wfile.write(b"ok" if ok else b"bot not running")
     def log_message(self, format, *args):
         pass
 
@@ -174,17 +185,21 @@ async def skip_notes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return PHOTOS
 
 async def get_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if len(context.user_data["photos"]) >= 4:
-        await update.message.reply_text("Max 4. Send /done.")
+    if len(context.user_data["photos"]) >= MAX_PHOTOS:
+        await update.message.reply_text(f"Max {MAX_PHOTOS}. Send /done.")
         return PHOTOS
     if update.message.photo:
-        file = await update.message.photo[-1].get_file()
+        media, ext = update.message.photo[-1], "jpg"
     else:
-        file = await update.message.document.get_file()
+        media = update.message.document
+        ext = (os.path.splitext(media.file_name or "")[1].lstrip(".").lower() or "jpg")[:5]
+    if media.file_size and media.file_size > MAX_PHOTO_BYTES:
+        await update.message.reply_text("That file is too large (max 10 MB). Try another photo.")
+        return PHOTOS
+    file = await media.get_file()
     bio = io.BytesIO()
     await file.download_to_memory(bio)
-    bio.seek(0)
-    context.user_data["photos"].append(bio.getvalue())
+    context.user_data["photos"].append((bio.getvalue(), ext))
     await update.message.reply_text(f"Photo {len(context.user_data['photos'])} saved. More or /done.")
     return PHOTOS
 
@@ -214,10 +229,10 @@ async def photos_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("prompt.txt", prompt)
-        for i, p in enumerate(data["photos"], 1):
-            zf.writestr(f"photos/0{i}.jpg", p)
+        for i, (p, ext) in enumerate(data["photos"], 1):
+            zf.writestr(f"photos/{i:02d}.{ext}", p)
     buf.seek(0)
-    name = data.get("name", "character").replace(" ", "_")
+    name = re.sub(r"[^A-Za-z0-9_-]+", "_", data.get("name", ""))[:40].strip("_") or "character"
     await update.message.reply_document(document=buf, filename=f"{name}_refsheet.zip", caption="Your RefSheet package")
     if ADMIN_ID:
         try:
@@ -225,6 +240,7 @@ async def photos_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
             await context.bot.send_document(chat_id=ADMIN_ID, document=buf, filename=f"{name}_refsheet.zip", caption=f"From @{update.effective_user.username or update.effective_user.id}")
         except Exception as e:
             logger.warning(f"Admin forward failed: {e}")
+    context.user_data.clear()
     await update.message.reply_text("Done. /start for another.")
     return ConversationHandler.END
 
@@ -243,16 +259,26 @@ async def unexpected(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error("Unhandled error", exc_info=context.error)
 
+async def timed_out(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    context.user_data.clear()
+    if update and update.effective_message:
+        await update.effective_message.reply_text("Session timed out. Send /start to begin again.")
+
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data.clear()
     await update.message.reply_text("Cancelled. /start to begin.")
     return ConversationHandler.END
+
+async def _mark_running(app: Application) -> None:
+    BOT_RUNNING.set()
+    logger.info("Bot polling started")
 
 def run_bot():
     if not BOT_TOKEN or BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
         logger.error("BOT_TOKEN not set. Bot will not start.")
         return
     logger.info("Starting Telegram bot...")
-    app = Application.builder().token(BOT_TOKEN).build()
+    app = Application.builder().token(BOT_TOKEN).post_init(_mark_running).build()
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
@@ -270,6 +296,7 @@ def run_bot():
                 MessageHandler(filters.PHOTO | filters.Document.IMAGE, get_photo),
                 CommandHandler("done", photos_done),
             ],
+            ConversationHandler.TIMEOUT: [TypeHandler(Update, timed_out)],
         },
         fallbacks=[
             CommandHandler("cancel", cancel),
@@ -278,6 +305,7 @@ def run_bot():
             CallbackQueryHandler(unexpected),
         ],
         allow_reentry=True,
+        conversation_timeout=CONVERSATION_TIMEOUT,
     )
     app.add_handler(conv)
     # Anything not inside a live conversation (e.g. state lost on restart)
@@ -285,6 +313,7 @@ def run_bot():
     app.add_handler(CallbackQueryHandler(lost_session))
     app.add_error_handler(on_error)
     app.run_polling()
+    BOT_RUNNING.clear()
 
 if __name__ == "__main__":
     logger.info(f"BOT_TOKEN present: {bool(BOT_TOKEN and BOT_TOKEN != 'YOUR_BOT_TOKEN_HERE')}")
@@ -295,7 +324,10 @@ if __name__ == "__main__":
         run_bot()
     except Exception as e:
         logger.exception(f"Bot crashed: {e}")
-    # Keep process alive
-    import time
+    if BOT_TOKEN and BOT_TOKEN != "YOUR_BOT_TOKEN_HERE":
+        # Crash/stop with a valid token: exit so the next keep-alive restarts the container.
+        time.sleep(30)  # leave time for logs to flush
+        sys.exit(1)
+    # No token: restarting won't help. Stay up (health returns 503) so logs stay readable.
     while True:
         time.sleep(60)

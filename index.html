@@ -234,6 +234,10 @@ const TAGS = {
 let characters = [];
 let charId = 0;
 
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function createCharBlock(data = {}) {
   const id = charId++;
   const div = document.createElement('div');
@@ -242,27 +246,27 @@ function createCharBlock(data = {}) {
   div.innerHTML = `
     <button class="remove-char" data-id="${id}">✕ Remove</button>
     <div class="row">
-      <div><label>Name</label><input class="c-name" value="${data.name||''}" placeholder="Will"></div>
+      <div><label>Name</label><input class="c-name" value="${esc(data.name)}" placeholder="Will"></div>
 
     </div>
     <div class="row">
-      <div><label>Height</label><div class="hw-row"><input class="c-height" type="number" min="140" max="220" value="${data.height||''}" placeholder="182"><select class="c-hunit"><option value="cm">cm</option><option value="ft">ft/in</option></select></div></div>
-      <div><label>Weight</label><div class="hw-row"><input class="c-weight" type="number" min="40" max="200" value="${data.weight||''}" placeholder="73"><select class="c-wunit"><option value="kg">kg</option><option value="lbs">lbs</option></select></div></div>
+      <div><label>Height</label><div class="hw-row"><input class="c-height" type="number" min="140" max="220" value="${esc(data.height)}" placeholder="182"><select class="c-hunit"><option value="cm">cm</option><option value="ft">ft/in</option></select></div></div>
+      <div><label>Weight</label><div class="hw-row"><input class="c-weight" type="number" min="40" max="200" value="${esc(data.weight)}" placeholder="73"><select class="c-wunit"><option value="kg">kg</option><option value="lbs">lbs</option></select></div></div>
     </div>
     <label>Appearance</label>
     <div class="sublabel">Body Type</div><div class="tags" data-group="body"></div>
     <div class="sublabel">Skin</div><div class="tags" data-group="skin"></div>
     <div class="sublabel">Hair</div><div class="tags" data-group="hair"></div>
     <div class="sublabel">Eyes & Face</div><div class="tags" data-group="face"></div>
-    <textarea class="c-appearance" placeholder="Click tags or type…">${data.appearance||''}</textarea>
+    <textarea class="c-appearance" placeholder="Click tags or type…">${esc(data.appearance)}</textarea>
     <label>Personal Style</label>
     <div class="tags" data-group="style"></div>
-    <textarea class="c-style" placeholder="Click tags or type…">${data.style||''}</textarea>
+    <textarea class="c-style" placeholder="Click tags or type…">${esc(data.style)}</textarea>
     <label>Vibe</label>
     <div class="tags" data-group="vibe"></div>
-    <textarea class="c-vibe" placeholder="Click tags or type…">${data.vibe||''}</textarea>
+    <textarea class="c-vibe" placeholder="Click tags or type…">${esc(data.vibe)}</textarea>
     <label>Extra Notes</label>
-    <textarea class="c-notes" placeholder="Notes…">${data.notes||''}</textarea>
+    <textarea class="c-notes" placeholder="Notes…">${esc(data.notes)}</textarea>
     <label>Reference Photos</label>
     <p class="note">1–4 clear photos. Face close-up recommended.</p>
     <div class="photos"></div>

@@ -7,11 +7,11 @@ RefSheet bot. Collects info + photos and returns a zip package.
 1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the token.
 2. Get your Telegram user ID (message [@userinfobot](https://t.me/userinfobot)).
 3. Install dependencies:
-   ```bash
+   ```zsh
    pip install -r requirements.txt
    ```
 4. Run:
-   ```bash
+   ```zsh
    export BOT_TOKEN="your-token-here"
    export ADMIN_ID="your-telegram-id"
    python bot.py
@@ -22,7 +22,16 @@ RefSheet bot. Collects info + photos and returns a zip package.
 - `/start` — begin
 - Answer name, height, weight
 - Tap appearance / style / vibe tags
-- Upload 1–4 photos
+- Add notes, or `/skip`
+- Upload 1–4 photos (compressed or as image files, max 10 MB each)
 - `/done` — receive the zip
+- `/cancel` stops; `/start` restarts at any point. Sessions expire after 30 min of inactivity.
 
 The zip contains `prompt.txt` + `photos/`. If `ADMIN_ID` is set, a copy is also forwarded to the admin.
+
+## Tests
+
+```zsh
+pip install -r requirements.txt pytest
+python -m pytest -q tests
+```
