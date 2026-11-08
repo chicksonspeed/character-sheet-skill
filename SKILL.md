@@ -11,6 +11,17 @@ Interactive workflow to collect character info and reference photos, then genera
 
 ## Workflow
 
+### Path A — User drops a zip or folder from the web app
+
+If the user uploads a zip or drops a folder that contains `prompt.txt` (and usually a `photos/` folder):
+
+1. Read `prompt.txt` — it already has the filled character information.
+2. Use the images in `photos/` (or any images in the upload) as the reference photos.
+3. **Skip the questions.** Do not ask for name, height, weight, role, appearance, style, or vibe.
+4. Go straight to generation using the content of `prompt.txt` as the prompt and the uploaded photos as references.
+
+### Path B — No pre-filled package (manual)
+
 1. **Collect information** — Use the `ask_user_question` tool to gather required details in one call with these questions (use the exact structure below). Do not proceed until answers are received.
 
 2. **Request photos** — After answers arrive, tell the user exactly which photos to upload:
@@ -24,7 +35,7 @@ Interactive workflow to collect character info and reference photos, then genera
    - Attach the uploaded photos as references.
    - Generate the image with the image generation tool / render component using that prompt + references.
 
-## Questions to ask (via ask_user_question)
+## Questions to ask (via ask_user_question) — only for Path B
 
 Ask all of these in a single `ask_user_question` call:
 
