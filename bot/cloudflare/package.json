@@ -1,0 +1,11 @@
+{
+  "name": "refsheet-bot",
+  "private": true,
+  "dependencies": {
+    "@cloudflare/containers": "^0.0.5"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
