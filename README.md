@@ -6,7 +6,7 @@ Web app for building professional character reference sheets. Download a zip you
 
 ## Features
 
-- Structured height/weight + role dropdown
+- Structured height/weight
 - Clickable tags for Body Type, Skin, Hair, Eyes & Face, Style, and Vibe
 - Live preview that updates as you type
 - Color palette extraction from uploaded photos

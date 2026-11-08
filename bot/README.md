@@ -21,7 +21,6 @@ Character sheet generator bot. Collects info + photos and returns a zip package.
 
 - `/start` — begin
 - Answer name, height, weight
-- Pick role from buttons
 - Tap appearance / style / vibe tags
 - Upload 1–4 photos
 - `/done` — receive the zip
