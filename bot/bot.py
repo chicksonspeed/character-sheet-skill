@@ -287,8 +287,10 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 def main():
-    if BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
-        print("Set BOT_TOKEN environment variable")
+    print(f"BOT_TOKEN present: {bool(BOT_TOKEN and BOT_TOKEN != 'YOUR_BOT_TOKEN_HERE')}")
+    print(f"ADMIN_ID: {ADMIN_ID}")
+    if not BOT_TOKEN or BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
+        print("ERROR: BOT_TOKEN not set. Exiting.")
         return
 
     app = Application.builder().token(BOT_TOKEN).build()
