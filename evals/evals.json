@@ -1,0 +1,20 @@
+{
+  "skill": "character-sheet",
+  "test_cases": [
+    {
+      "name": "basic_character_sheet_request",
+      "input": "Make me a character sheet for this guy",
+      "assertions": ["asks structured questions about name, height, weight, role, appearance, style, vibe", "instructs on which photos to upload"]
+    },
+    {
+      "name": "reference_sheet_request",
+      "input": "I need a reference sheet like the Will one, with turnarounds",
+      "assertions": ["uses ask_user_question to collect info", "provides the strict layout prompt guidance"]
+    },
+    {
+      "name": "photo_plus_info",
+      "input": "Generate a character sheet from these photos and this description",
+      "assertions": ["collects missing details via questions", "requests appropriate reference photos if not provided"]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "skill": "character-sheet",
+  "test_cases": [
+    {
+      "input": "make a character sheet",
+      "should_trigger": true
+    },
+    {
+      "input": "generate a reference sheet for this person",
+      "should_trigger": true
+    },
+    {
+      "input": "create a model sheet with turnarounds",
+      "should_trigger": true
+    },
+    {
+      "input": "what's the weather today",
+      "should_trigger": false
+    },
+    {
+      "input": "write me a python script",
+      "should_trigger": false
+    }
+  ]
+}
