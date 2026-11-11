@@ -4,7 +4,7 @@ compatibility_date = "2026-09-29"
 
 [[containers]]
 class_name = "RefSheetBot"
-image = "registry.cloudflare.com/909f2771c17f5feba2fd73c6bb466924/refsheet-bot:v12"
+image = "registry.cloudflare.com/909f2771c17f5feba2fd73c6bb466924/refsheet-bot:v13"
 instance_type = "lite"
 max_instances = 1
 
