@@ -21,7 +21,7 @@ Web app for building professional character reference sheets. Download a zip you
 1. Fill in identity, tap tags (or add your own), drop in 1–4 photos
 2. Pick format, likeness and variations
 3. **Download zip** — `prompt.txt` + `photos/` (+ `palette.txt`)
-4. Drop the contents into Grok, Flux, Midjourney, etc. — or into the Grok skill (Path A)
+4. A popup gives you a ready-made prompt — upload the zip as-is to ChatGPT (recommended), paste, send. Or drop the contents into Grok, Flux, Midjourney, etc. — or into the Grok skill (Path A)
 
 ## Repo
 

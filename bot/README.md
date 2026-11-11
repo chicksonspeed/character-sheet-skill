@@ -28,7 +28,7 @@ RefSheet bot. Collects info + photos and returns a zip package.
 - Upload 1–4 photos (compressed or as image files, max 10 MB each), then tap ✅ Done
 - `/cancel` stops; `/start` restarts at any point. Sessions expire after 30 min of inactivity.
 
-The zip contains `prompt.txt` + `photos/`. If `ADMIN_ID` is set, a copy is also forwarded to the admin.
+The zip contains `prompt.txt` + `photos/`. After the zip, the bot sends a tap-to-copy prompt for uploading the zip to ChatGPT (or any model). If `ADMIN_ID` is set, a copy is also forwarded to the admin.
 
 ## Tests
 

@@ -394,6 +394,31 @@ button { cursor: pointer; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.err { background: var(--danger); color: #fff; }
 
+/* ---------- next-step dialog ---------- */
+.next {
+  width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto;
+  padding: 0; border: 1px solid var(--line-2); border-radius: 2px;
+  background: var(--panel); color: var(--paper); box-shadow: 0 30px 80px rgba(0,0,0,.6);
+}
+.next::backdrop { background: rgba(11,11,10,.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.next[open] { animation: fade .2s; }
+.next-in { padding: 26px 26px 22px; display: grid; gap: 16px; }
+.next-kicker { font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--yellow); }
+.next h2 { margin: 0; font: 800 34px/.95 var(--display); text-transform: uppercase; letter-spacing: .01em; }
+.next p { margin: 0; color: var(--muted); font: 400 14px/1.5 var(--sans); }
+.next p b { color: var(--paper); font-weight: 600; }
+.next ol { margin: 0; padding-left: 20px; color: var(--muted); font: 400 14px/1.6 var(--sans); }
+.next ol b { color: var(--paper); font-weight: 600; }
+.next-prompt {
+  margin: 0; padding: 14px 16px; background: var(--ink); border: 1px solid var(--line); border-left: 3px solid var(--yellow);
+  font: 400 13px/1.55 var(--mono); color: var(--paper); white-space: pre-wrap; word-break: break-word; user-select: all;
+}
+.next-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.next-actions .btn { flex: 1 1 auto; }
+.next-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font: 400 11.5px/1.4 var(--mono); color: var(--dim); }
+.next-foot label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.next-foot button { background: none; border: 0; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; padding: 4px 0; }
+
 footer.colophon {
   max-width: 1440px; margin: 40px auto 0; padding: 0 32px;
   font: 400 11px/1.6 var(--mono); color: var(--dim); letter-spacing: .04em;
@@ -499,6 +524,27 @@ footer.colophon a { color: var(--muted); }
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<dialog class="next" id="nextDlg" aria-labelledby="nextTitle">
+  <div class="next-in">
+    <div class="next-kicker" id="nextKicker">Zip downloaded</div>
+    <h2 id="nextTitle">Now make the sheet</h2>
+    <ol>
+      <li>Open <b>ChatGPT</b> (recommended — best results so far) or any image model you like.</li>
+      <li>Upload <b id="nextZip">the zip</b> as-is — no need to unzip.</li>
+      <li>Paste this prompt and send:</li>
+    </ol>
+    <pre class="next-prompt" id="nextPrompt"></pre>
+    <div class="next-actions">
+      <button class="btn primary" id="nextCopy" type="button">Copy prompt &amp; open ChatGPT</button>
+      <button class="btn" id="nextCopyOnly" type="button">Copy only</button>
+    </div>
+    <div class="next-foot">
+      <label><input type="checkbox" id="nextHide"> Don't show after downloads</label>
+      <button type="button" id="nextClose">Close</button>
+    </div>
+  </div>
+</dialog>
+
 <script>
 (() => {
 'use strict';
@@ -509,6 +555,8 @@ footer.colophon a { color: var(--muted); }
 // Telegram bot link for "Have it made" — button is hidden while empty.
 const BUILDER_URL = 'https://t.me/Refsheet_bot';
 const GROK_URL = 'https://grok.com';
+const CHATGPT_URL = 'https://chatgpt.com/';
+const NEXT_HIDE_KEY = 'refsheet.hideNextStep';
 const STORE_KEY = 'refsheet:v2';
 const LEGACY_KEY = 'cs-profiles';
 const MAX_PHOTOS = 4;
@@ -1119,6 +1167,15 @@ function renderAll() {
 /* ======================================================================
    Export
    ====================================================================== */
+// The hand-off prompt that has given the best sheets (tested in ChatGPT)
+function handoffPrompt(zipName) {
+  const multi = state.chars.length > 1;
+  const pf = state.out.variations > 1 ? 'prompt_v1.txt' : 'prompt.txt';
+  return multi
+    ? `generate a professional character reference sheet for each character folder in the uploaded package (${zipName}), using the character info in each folder's ${pf} and its reference photos.`
+    : `generate the professional character reference sheet from the uploaded package (${zipName}), using the character info in ${pf} and the reference photos.`;
+}
+
 async function buildZip() {
   if (!window.JSZip) throw new Error('Zip library failed to load — check your connection and reload.');
   const zip = new JSZip();
@@ -1144,8 +1201,13 @@ async function buildZip() {
     c.photos.forEach((p, i) => { if (p) pf.file(`0${i + 1}.${p.ext}`, p.file); });
     if (c.colors.length) folder.file('palette.txt', c.colors.join('\n'));
   });
-  const blob = await zip.generateAsync({ type: 'blob' });
   const name = multi ? 'character_sheets.zip' : `${safeName(state.chars[0].name)}_refsheet.zip`;
+  zip.forEach((path, f) => {
+    if (!f.dir && path.endsWith('INSTRUCTIONS.txt')) {
+      zip.file(path, `EASIEST (recommended: ChatGPT)\nUpload ${name} as-is and paste:\n\n${handoffPrompt(name)}\n\nOR MANUALLY\nUpload photos/ as references.\nPaste prompt.txt (or prompt_v*.txt).\nWorks in ChatGPT, Grok, Flux, Midjourney, etc.`);
+    }
+  });
+  const blob = await zip.generateAsync({ type: 'blob' });
   return { blob, name };
 }
 
@@ -1164,8 +1226,38 @@ $('#zipBtn').addEventListener('click', e => withBusy(e.currentTarget, async () =
   const { blob, name } = await buildZip();
   download(blob, name);
   const missing = state.chars.filter(c => !c.photos.some(Boolean)).length;
-  toast(missing ? `Downloaded ${name} — ${missing === 1 && state.chars.length === 1 ? 'no photos included' : `${missing} without photos`}` : `Downloaded ${name}`);
+  if (!showNext(name, 'Zip downloaded')) toast(missing ? `Downloaded ${name} — ${missing === 1 && state.chars.length === 1 ? 'no photos included' : `${missing} without photos`}` : `Downloaded ${name}`);
+  else if (missing) toast(missing === 1 && state.chars.length === 1 ? 'Heads up: no photos included' : `Heads up: ${missing} without photos`, true);
 }));
+
+// "What now?" dialog shown after the zip is downloaded/shared
+const nextDlg = $('#nextDlg');
+const nextHidden = () => { try { return localStorage.getItem(NEXT_HIDE_KEY) === '1'; } catch (e) { return false; } };
+function showNext(zipName, kicker, force = false) {
+  if (!force && nextHidden()) return false;
+  if (typeof nextDlg.showModal !== 'function') return false;
+  $('#nextKicker').textContent = kicker;
+  $('#nextZip').textContent = zipName;
+  $('#nextPrompt').textContent = handoffPrompt(zipName);
+  $('#nextHide').checked = nextHidden();
+  if (!nextDlg.open) nextDlg.showModal();
+  $('#nextCopy').focus();
+  return true;
+}
+async function copyNext() {
+  try { await navigator.clipboard.writeText($('#nextPrompt').textContent); return true; }
+  catch (e) { toast('Could not copy — select the prompt and copy manually', true); return false; }
+}
+$('#nextCopy').addEventListener('click', async () => {
+  if (!(await copyNext())) return;
+  nextDlg.close();
+  toast('Prompt copied — upload the zip in ChatGPT and paste');
+  window.open(CHATGPT_URL, '_blank', 'noopener');
+});
+$('#nextCopyOnly').addEventListener('click', async () => { if (await copyNext()) toast('Prompt copied'); });
+$('#nextClose').addEventListener('click', () => nextDlg.close());
+$('#nextHide').addEventListener('change', e => { try { e.target.checked ? localStorage.setItem(NEXT_HIDE_KEY, '1') : localStorage.removeItem(NEXT_HIDE_KEY); } catch (err) {} });
+nextDlg.addEventListener('click', e => { if (e.target === nextDlg) nextDlg.close(); });
 
 $('#copyBtn').addEventListener('click', async () => {
   try {
@@ -1192,8 +1284,9 @@ shareBtn.addEventListener('click', e => withBusy(e.currentTarget, async () => {
   const file = new File([blob], name, { type: 'application/zip' });
   try {
     await navigator.share({ files: [file], title: 'RefSheet package', text: 'Character reference sheet package — prompt.txt + photos inside.' });
+    showNext(name, 'Zip shared');
   } catch (err) {
-    if (err.name !== 'AbortError') { download(blob, name); toast('Sharing failed — downloaded instead'); }
+    if (err.name !== 'AbortError') { download(blob, name); if (!showNext(name, 'Sharing failed — downloaded instead')) toast('Sharing failed — downloaded instead'); }
   }
 }));
 

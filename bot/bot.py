@@ -506,6 +506,12 @@ RIGHT: details + notes.
 Same person in every view."""
 
 
+def handoff_prompt(zip_name):
+    """Prompt to paste alongside the uploaded zip — has given the best sheets in ChatGPT."""
+    return (f"generate the professional character reference sheet from the uploaded package "
+            f"({zip_name}), using the character info in prompt.txt and the reference photos.")
+
+
 async def photos_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     ud = context.user_data
     msg = update.effective_message
@@ -542,8 +548,11 @@ async def photos_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
             logger.warning(f"Admin forward failed: {e}")
     ud.clear()
     await msg.reply_text(
-        "🎉 <b>Your package is ready!</b>\n"
-        "Drop the zip into Grok, Flux or Midjourney.\n\n/start to build another.",
+        "🎉 <b>Your package is ready!</b>\n\n"
+        "<b>Next:</b> upload the zip as-is to <b>ChatGPT</b> (recommended) or your AI of choice, "
+        "then paste this prompt (tap it to copy):\n\n"
+        f"<code>{esc(handoff_prompt(f'{name}_refsheet.zip'))}</code>\n\n"
+        "/start to build another.",
         parse_mode=ParseMode.HTML,
     )
     return ConversationHandler.END

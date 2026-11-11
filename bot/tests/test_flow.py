@@ -133,6 +133,8 @@ def test_full_flow_with_buttons(harness):
     assert "Appearance: athletic" in prompt_txt(h)
     assert "<b>Kai</b>" in caption
     assert "package is ready" in h.out[-1]
+    assert "ChatGPT" in h.out[-1]
+    assert "<code>generate the professional character reference sheet from the uploaded package (Kai_refsheet.zip)" in h.out[-1]
 
 
 def test_legacy_commands_still_work(harness):
